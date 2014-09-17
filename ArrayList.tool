@@ -5,7 +5,7 @@
  **/
 object Main {
        def main() : Unit = {
-           println(new ArrayList().Add(10));
+           println(new ArrayList().Init().Add(10).Remove(0).Add(15).Get(0));
        }
 }
 
@@ -21,7 +21,7 @@ class ArrayList {
       /**
        * Adds n in the size position in the array list
        **/
-      def Add(n : Int) : Int = {
+      def Add(n : Int) : ArrayList = {
           var ncontent : Int[];
           var osef : Int;
           var copy : Copier;
@@ -32,9 +32,9 @@ class ArrayList {
           osef = copy.Copy(ncontent, content);
 
           content = ncontent;
-          content[content.length] = n;
+          content[content.length - 1] = n;
 
-          return content.length;
+          return this;
       }
 
       /**
@@ -60,7 +60,7 @@ class ArrayList {
       /**
        * Removes the nth element of the list if n is a valid index
        **/
-      def Remove(n : Int) : Int = {
+      def Remove(n : Int) : ArrayList = {
           var Geq : Bool;
           var value : Int;
           var copier : Copier;
@@ -82,19 +82,17 @@ class ArrayList {
                value = copier.CopyFT(Second, content, n + 1, 0, content.length - n - 1);
                content = copier.Merge(First, Second);
           }
-
-          return value;
+          return this;
       }
 
       def Length() : Int = {
           return content.length;
       }
 
-      def Clear() : Int = {
+      def Clear() : ArrayList = {
           content = new Int[0];
-          return 0;
+          return this;
       }
-
 }
 
 /**
