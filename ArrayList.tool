@@ -5,14 +5,18 @@
  **/
 object Main {
        def main() : Unit = {
-           var a : ArrayList;
-
-           a = new ArrayList();
+           println(new ArrayList().Add(10));
        }
 }
 
 class ArrayList {
       var content : Int[];
+
+      def Init() : ArrayList = {
+          content = new Int[0];
+
+          return this;
+      }
 
       /**
        * Adds n in the size position in the array list
@@ -53,9 +57,17 @@ class ArrayList {
           return content[n];
       }
 
+      /**
+       * Removes the nth element of the list if n is a valid index
+       **/
       def Remove(n : Int) : Int = {
           var Geq : Bool;
           var value : Int;
+          var copier : Copier;
+          var First : Int[];
+          var Second : Int[];
+
+          copier = new Copier();
 
           Geq = ! (n < content.length);
 
@@ -63,7 +75,12 @@ class ArrayList {
                value = 0 - 1;
           }
           else {
+               First = new Int[n];
+               Second = new Int[content.length - n - 1];
 
+               value = copier.CopyN(First, content, n);
+               value = copier.CopyFT(Second, content, n + 1, 0, content.length - n - 1);
+               content = copier.Merge(First, Second);
           }
 
           return value;
@@ -80,6 +97,9 @@ class ArrayList {
 
 }
 
+/**
+ * Class used to manipulate arrays of Ints
+ **/
 class Copier {
       /**
        * Copies every element of src into dst as long as there is
@@ -112,16 +132,16 @@ class Copier {
       }
 
       /**
-       * Copies the elements between src[s1] and src[e] to dst[s2] src[e]
+       * Copies the elements between src[s1] and src[s1 + n] to dst[s2] src[s2 + n]
        **/
-      def CopyFT(dst : Int[], src : Int[], s1 : Int, s2 : Int, e : Int) : Int = {
+      def CopyFT(dst : Int[], src : Int[], s1 : Int, s2 : Int, n : Int) : Int = {
           var i : Int;
           var j : Int;
 
           i = s1;
           j = s2;
 
-          while(i < src.length && i < e && j < src.length && j < e) {
+          while(i < src.length && j < src.length && i - s1 < n && i - s2 < n) {
                   dst[j] = src[i];
                   i = i + 1;
                   j = j + 1;
