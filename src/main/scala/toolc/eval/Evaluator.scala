@@ -94,11 +94,12 @@ class Evaluator(ctx: Context, prog: Program) {
     
     case Identifier(name) => ectx.getVariable(name)
     case New(tpe) => ObjectValue(findClass(tpe.value)) //Return a new ObjectValue of the correct type
-    case This() => ectx match {
-      case MethodContext(obj) => obj //TODO: MethodContext isn't a case class so we can't pattern match on it
-      case _ => fatal("Can't use this outside of a method call")
+    case This() => {
+      		if (ectx.obj) 
+      		else fatal("Can't use this outside of a method call")
+    	}
     }
-    case NewIntArray(size) => ???
+    case NewIntArray(size) => new ArrayValue(new Array[Int](evalExpr(ectx, size).asInt), evalExpr(ectx, size).asInt)
   }
 
   // Define the scope of evaluation, with methods to access/declare/set local variables(or arguments)
