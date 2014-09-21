@@ -3,6 +3,7 @@ package eval
 
 import ast.Trees._
 import utils._
+import scala.reflect.internal.TreesStats
 
 class Evaluator(ctx: Context, prog: Program) {
   import ctx.reporter._
@@ -53,14 +54,14 @@ class Evaluator(ctx: Context, prog: Program) {
     case StringLit(value) => StringValue(value)
     case True()           => BoolValue(true)
     case False()          => BoolValue(false)
-    case And(lhs, rhs) => ???
-    case Or(lhs, rhs)  => ???
-    case Plus(lhs, rhs) => ???
-    case Minus(lhs, rhs) => ???
-    case Times(lhs, rhs) => ???
-    case Div(lhs, rhs) => ???
-    case LessThan(lhs, rhs) => ???
-    case Not(expr) => ???
+    case And(lhs, rhs) => BoolValue(evalExpr(ectx, lhs).asBool && evalExpr(ectx, rhs).asBool)
+    case Or(lhs, rhs)  => BoolValue(evalExpr(ectx, lhs).asBool || evalExpr(ectx, rhs).asBool)
+    case Plus(lhs, rhs) => IntValue(evalExpr(ectx, lhs).asInt + evalExpr(ectx, rhs).asInt)
+    case Minus(lhs, rhs) => IntValue(evalExpr(ectx, lhs).asInt - evalExpr(ectx, rhs).asInt)
+    case Times(lhs, rhs) => IntValue(evalExpr(ectx, lhs).asInt * evalExpr(ectx, rhs).asInt)
+    case Div(lhs, rhs) => IntValue(evalExpr(ectx, lhs).asInt / evalExpr(ectx, rhs).asInt)
+    case LessThan(lhs, rhs) => BoolValue(evalExpr(ectx, lhs).asInt < evalExpr(ectx, rhs).asInt)
+    case Not(expr) => BoolValue(!evalExpr(ectx, expr).asBool)
     case Equals(lhs, rhs) =>
       val lv = evalExpr(ectx, lhs)
       val rv = evalExpr(ectx, rhs)
@@ -71,12 +72,32 @@ class Evaluator(ctx: Context, prog: Program) {
       }
       BoolValue(res)
 
-    case ArrayRead(arr, index) => ???
-    case ArrayLength(arr) => ???
-    case MethodCall(obj, meth, args) => ???
-    case Identifier(name) => ???
-    case New(tpe) => ???
-    case This() => ???
+    case ArrayRead(arr, index) => IntValue(evalExpr(ectx, arr).asArray.getIndex(evalExpr(ectx, index).asInt))
+    case ArrayLength(arr) => IntValue(evalExpr(ectx, arr).asArray.size) 
+    
+    case MethodCall(obj, meth, args) => {
+      val objval : ObjectValue = evalExpr(ectx, obj).asObject //Evaluate the obj we run a method of
+      val mctx : MethodContext = new MethodContext(objval) //Create a context for the method
+      val method = findMethod(objval.cd, meth.value) //Get the methodDeclaration
+      
+      method.args.map(_.id).zip(args).foreach {
+        case (id, expr) => { //Evaluate the value for the expression of each argument to the method call
+        	mctx.declareVariable(id.value)
+        	mctx.setVariable(id.value, evalExpr(ectx, expr))
+        }
+      }
+      
+      method.stats.foreach(evalStatement(mctx, _)) //Evaluate each statement that makes the method
+      
+      evalExpr(mctx, method.retExpr) //And finally evaluate and return the return value      
+    }
+    
+    case Identifier(name) => ectx.getVariable(name)
+    case New(tpe) => ObjectValue(findClass(tpe.value)) //Return a new ObjectValue of the correct type
+    case This() => ectx match {
+      case MethodContext(obj) => obj //TODO: MethodContext isn't a case class so we can't pattern match on it
+      case _ => fatal("Can't use this outside of a method call")
+    }
     case NewIntArray(size) => ???
   }
 
