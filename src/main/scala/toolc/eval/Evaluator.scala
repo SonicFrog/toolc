@@ -16,34 +16,31 @@ class Evaluator(ctx: Context, prog: Program) {
   }
 
   def evalStatement(ectx: EvaluationContext, stmt: StatTree): Unit = stmt match {
-    //Comme un block c'est juste une liste de statement on evalue chacun des statement individuellement
+    //Since a block is only a list of statement we only have to evaluate each one 
     case Block(stats) => stats.foreach(evalStatement(ectx, _)) 
     
-    //Là on évalue seulement si la condition est vraie sinon on évalue els
     case If(expr, thn, els) => 
-      if (evalExpr(ectx, expr).asBool) //Si la condition est vraie on execute le then
+      if (evalExpr(ectx, expr).asBool) //If the condition is True evaluate the statement
         evalStatement(ectx, thn) 
-      else { //Sinon on regarde si on a un elseb
+      else { //The if condition is False we need to check for an else
     	  els match {
-          case None => //Là c'est le cas où on a pas de else
-          case Some(stat) => evalStatement(ectx, stat) //Si on a quelque chose on avait un else qu'on évalue
+          case None => //Here we have no else statement
+          case Some(stat) => evalStatement(ectx, stat) //If we have an else statement we evaluate it
         }
       }
       
-    //Tant que l'expression évalue à vrai on evalu???e le statement associé
+    //As long as expr evaluates to True we evaluate the associated statement
     case While(expr, stat) => while (evalExpr(ectx, expr).asBool) evalStatement(ectx, stat)
     
     //Là pas trop technique on print simplement la valeur de l'expression
     case Println(expr) => println(evalExpr(ectx, expr).asString)
     
-    //Là j'ai un peu de mal à voir comment on récupére le nom de la variable en tant que String vu
-    //on l'obtient comme un Identifier
-    //J'ai fait ça mais en fait je sais pas si id.position est le nom de la variable identifiée par id
-    case Assign(id, expr) => ectx.setVariable(id.position, evalExpr(ectx, expr))
+    //See ArrayAssign
+    case Assign(id, expr) => ectx.setVariable(id.value, evalExpr(ectx, expr))
     
-    //Même chose ici vu qu'on a seulement un identifier pour l'array
+    //My bad simply use id.value to get the name as a string ...
     case ArrayAssign(id, index, expr) => {
-      val array = ectx.getVariable(id.position).asArray
+      val array = ectx.getVariable(id.value).asArray
       array.setIndex(evalExpr(ectx, index).asInt, evalExpr(ectx, expr).asInt)
     }
       
