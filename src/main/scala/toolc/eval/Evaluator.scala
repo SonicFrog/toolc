@@ -16,12 +16,37 @@ class Evaluator(ctx: Context, prog: Program) {
   }
 
   def evalStatement(ectx: EvaluationContext, stmt: StatTree): Unit = stmt match {
-    case Block(stats) => ???
-    case If(expr, thn, els) => ???
-    case While(expr, stat) => ???
-    case Println(expr) => ???
-    case Assign(id, expr) => ???
-    case ArrayAssign(id, index, expr) => ???
+    //Comme un block c'est juste une liste de statement on evalue chacun des statement individuellement
+    case Block(stats) => stats.foreach(evalStatement(ectx, _)) 
+    
+    //Là on évalue seulement si la condition est vraie sinon on évalue els
+    case If(expr, thn, els) => 
+      if (evalExpr(ectx, expr).asBool) //Si la condition est vraie on execute le then
+        evalStatement(ectx, thn) 
+      else { //Sinon on regarde si on a un elseb
+    	  els match {
+          case None => //Là c'est le cas où on a pas de else
+          case Some(stat) => evalStatement(ectx, stat) //Si on a quelque chose on avait un else qu'on évalue
+        }
+      }
+      
+    //Tant que l'expression évalue à vrai on evalu???e le statement associé
+    case While(expr, stat) => while (evalExpr(ectx, expr).asBool) evalStatement(ectx, stat)
+    
+    //Là pas trop technique on print simplement la valeur de l'expression
+    case Println(expr) => println(evalExpr(ectx, expr).asString)
+    
+    //Là j'ai un peu de mal à voir comment on récupére le nom de la variable en tant que String vu
+    //on l'obtient comme un Identifier
+    //J'ai fait ça mais en fait je sais pas si id.position est le nom de la variable identifiée par id
+    case Assign(id, expr) => ectx.setVariable(id.position, evalExpr(ectx, expr))
+    
+    //Même chose ici vu qu'on a seulement un identifier pour l'array
+    case ArrayAssign(id, index, expr) => {
+      val array = ectx.getVariable(id.position).asArray
+      array.setIndex(evalExpr(ectx, index).asInt, evalExpr(ectx, expr).asInt)
+    }
+      
     case _ =>
       fatal("unnexpected statement", stmt)
   }
