@@ -94,11 +94,12 @@ class Evaluator(ctx: Context, prog: Program) {
     
     case Identifier(name) => ectx.getVariable(name)
     case New(tpe) => ObjectValue(findClass(tpe.value)) //Return a new ObjectValue of the correct type
-    case This() => {
-      		if (ectx.obj) 
-      		else fatal("Can't use this outside of a method call")
-    	}
+    
+    case This() => ectx match {
+      case MethodContext(obj) => obj
+      case _ => fatal("Can't use this outside of method call")
     }
+    
     case NewIntArray(size) => new ArrayValue(new Array[Int](evalExpr(ectx, size).asInt), evalExpr(ectx, size).asInt)
   }
 
@@ -111,7 +112,8 @@ class Evaluator(ctx: Context, prog: Program) {
 
   // A Method context consists of the execution context within an object method.
   // getVariable can fallback to the fields of the current object
-  class MethodContext(val obj: ObjectValue) extends EvaluationContext {
+  //Changed MethodContext to be a class to allow pattern matching to evaluate This()
+  case class MethodContext(val obj: ObjectValue) extends EvaluationContext {
     var vars = Map[String, Option[Value]]()
 
     def getVariable(name: String): Value = {
