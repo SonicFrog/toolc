@@ -3,7 +3,6 @@ package eval
 
 import ast.Trees._
 import utils._
-import scala.reflect.internal.TreesStats
 
 class Evaluator(ctx: Context, prog: Program) {
   import ctx.reporter._
@@ -25,8 +24,8 @@ class Evaluator(ctx: Context, prog: Program) {
         evalStatement(ectx, thn) 
       else { //The if condition is False we need to check for an else
     	  els match {
-          case None => //Here we have no else statement
-          case Some(stat) => evalStatement(ectx, stat) //If we have an else statement we evaluate it
+    	  	case None => //Here we have no else statement
+    	  	case Some(stat) => evalStatement(ectx, stat) //If we have an else statement we evaluate it
         }
       }
       
@@ -34,10 +33,20 @@ class Evaluator(ctx: Context, prog: Program) {
     case While(expr, stat) => while (evalExpr(ectx, expr).asBool) evalStatement(ectx, stat)
     
     //Là pas trop technique on print simplement la valeur de l'expression
-    case Println(expr) => println(evalExpr(ectx, expr).asString)
+    case Println(expr) => evalExpr(ectx, expr) match {
+      case IntValue(i) => println(i)
+      case BoolValue(b) => println(b)
+      case StringValue(s) => println(s)
+      case ObjectValue(o) => println(o.id.value)
+      case ArrayValue(cnt, size) => ??? //How do we print an array ?
+    }
     
-    //See ArrayAssign
-    case Assign(id, expr) => ectx.setVariable(id.value, evalExpr(ectx, expr))
+    //We assume that the parser does not let the user assign to a non declared variable and so we declare
+    //it ourselves
+    case Assign(id, expr) => {
+      ectx.declareVariable(id.value)
+      ectx.setVariable(id.value, evalExpr(ectx, expr))
+    }    
     
     //My bad simply use id.value to get the name as a string ...
     case ArrayAssign(id, index, expr) => {
@@ -73,6 +82,7 @@ class Evaluator(ctx: Context, prog: Program) {
       BoolValue(res)
 
     case ArrayRead(arr, index) => IntValue(evalExpr(ectx, arr).asArray.getIndex(evalExpr(ectx, index).asInt))
+    
     case ArrayLength(arr) => IntValue(evalExpr(ectx, arr).asArray.size) 
     
     case MethodCall(obj, meth, args) => {
@@ -80,6 +90,9 @@ class Evaluator(ctx: Context, prog: Program) {
       val mctx : MethodContext = new MethodContext(objval) //Create a context for the method
       val method = findMethod(objval.cd, meth.value) //Get the methodDeclaration
       
+      if (method.args.length != args.length) 
+        fatal("Not enough arguments in call to " + method.id.value)
+        
       method.args.map(_.id).zip(args).foreach {
         case (id, expr) => { //Evaluate the value for the expression of each argument to the method call
         	mctx.declareVariable(id.value)
@@ -93,14 +106,24 @@ class Evaluator(ctx: Context, prog: Program) {
     }
     
     case Identifier(name) => ectx.getVariable(name)
-    case New(tpe) => ObjectValue(findClass(tpe.value)) //Return a new ObjectValue of the correct type
+    
+    case New(tpe) => {
+      val cd = findClass(tpe.value) //Return a new ObjectValue of the correct type
+      val obj = ObjectValue(cd)
+      
+      fieldsOfClass(cd) foreach {
+        x => obj declareField x //I forgot to declare the fields when instantiating a new Object ...
+      }
+      
+      obj
+    }
     
     case This() => ectx match {
       case MethodContext(obj) => obj
       case _ => fatal("Can't use this outside of method call")
     }
     
-    case NewIntArray(size) => new ArrayValue(new Array[Int](evalExpr(ectx, size).asInt), evalExpr(ectx, size).asInt)
+    case NewIntArray(size) => ArrayValue(new Array[Int](evalExpr(ectx, size).asInt), evalExpr(ectx, size).asInt)
   }
 
   // Define the scope of evaluation, with methods to access/declare/set local variables(or arguments)
@@ -177,12 +200,12 @@ class Evaluator(ctx: Context, prog: Program) {
       if (fields contains name) {
         fields += name -> Some(v)
       } else {
-        fatal("Unknown field '"+name+"'")
+        fatal("Unknown (set) field '"+name+"'")
       }
     }
 
     def getField(name: String) = {
-      fields.get(name).flatten.getOrElse(fatal("Unknown field '"+name+"'"))
+      fields.get(name).flatten.getOrElse(fatal("Unknown (get) field '"+name+"'"))
     }
 
     def declareField(name: String) {
