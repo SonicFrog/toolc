@@ -97,6 +97,10 @@ class Evaluator(ctx: Context, prog: Program) {
         }
       }
       
+      method.vars foreach {
+        mctx declareVariable _.id.value
+      }
+      
       method.stats.foreach(evalStatement(mctx, _)) //Evaluate each statement that makes the method
       
       evalExpr(mctx, method.retExpr) //And finally evaluate and return the return value      
@@ -105,10 +109,10 @@ class Evaluator(ctx: Context, prog: Program) {
     case Identifier(name) => ectx.getVariable(name)
     case New(tpe) => {
       val cd = findClass(tpe.value) //Return a new ObjectValue of the correct type
-      val obj = ObjectValue(cd)
+      val obj = new ObjectValue(cd)
       
       fieldsOfClass(cd) foreach {
-        x => obj declareField x //I forgot to declare the fields when instantiating a new Object ...
+        obj declareField _ //I forgot to declare the fields when instantiating a new Object ...
       }
       
       obj
