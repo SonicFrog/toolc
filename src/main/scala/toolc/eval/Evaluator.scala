@@ -38,7 +38,7 @@ class Evaluator(ctx: Context, prog: Program) {
       case BoolValue(b) => println(b)
       case StringValue(s) => println(s)
       case ObjectValue(o) => println(o.id.value)
-      case ArrayValue(cnt, size) => ??? //How do we print an array ?
+      case ArrayValue(cnt, size) => println("ArrayValue" + cnt)
     }
     
     //We assume that the parser does not let the user assign to a non declared variable and so we declare
@@ -62,19 +62,26 @@ class Evaluator(ctx: Context, prog: Program) {
     case False()          => BoolValue(false)
     case And(lhs, rhs) => BoolValue(evalExpr(ectx, lhs).asBool && evalExpr(ectx, rhs).asBool)
     case Or(lhs, rhs)  => BoolValue(evalExpr(ectx, lhs).asBool || evalExpr(ectx, rhs).asBool)
-    case Plus(lhs, rhs) => evalExpr(ectx, lhs) match {
-      case IntValue(one) => evalExpr(ectx, rhs) match {
-        case IntValue(two) => IntValue(one + two)
-        case StringValue(two) => StringValue(one + two)
-        case _ => fatal("Can't concatenate " + evalExpr(ectx, lhs) + " with " + evalExpr(ectx, rhs)) 
+    case Plus(lhs, rhs) => {
+      val lhv = evalExpr(ectx, lhs)
+      val rhv = evalExpr(ectx, rhs)
+      
+      lhv match {
+        case StringValue(one) => rhv match {
+          case StringValue(two) => StringValue(one + two)
+          case IntValue(two) => StringValue(one + two)
+          case _ => fatal("Can't + " + lhv + " with " + rhv)
+        }
+        
+        case IntValue(one) => rhv match {
+          case StringValue(two) => StringValue(one + two)
+          case IntValue(two) =>  IntValue(one + two)
+          case _ => fatal("Can't + " + lhv + " with " + rhv)
+        }
+        case _ => fatal(lhv + " is not +able")
       }
-      case StringValue(one) => evalExpr(ectx, rhs) match {
-        case StringValue(two) => StringValue(one + two)
-        case IntValue(two) => StringValue(one + two)
-        case _ => fatal("Can't concatenate " + evalExpr(ectx, lhs) + " with " + evalExpr(ectx, rhs)) 
-      }
-      case _ => fatal("Can't concatenate " + evalExpr(ectx, lhs) + " with " + evalExpr(ectx, rhs)) 
     }
+    
     case Minus(lhs, rhs) => IntValue(evalExpr(ectx, lhs).asInt - evalExpr(ectx, rhs).asInt)
     case Times(lhs, rhs) => IntValue(evalExpr(ectx, lhs).asInt * evalExpr(ectx, rhs).asInt)
     case Div(lhs, rhs) => IntValue(evalExpr(ectx, lhs).asInt / evalExpr(ectx, rhs).asInt)
@@ -131,7 +138,7 @@ class Evaluator(ctx: Context, prog: Program) {
     }
     
     case This() => ectx match {
-      case MethodContext(obj) => obj
+      case mctx : MethodContext => mctx.obj 
       case _ => fatal("Can't use this outside of method call")
     }
     
@@ -148,7 +155,7 @@ class Evaluator(ctx: Context, prog: Program) {
   // A Method context consists of the execution context within an object method.
   // getVariable can fallback to the fields of the current object
   //Changed MethodContext to be a class to allow pattern matching to evaluate This()
-  case class MethodContext(val obj: ObjectValue) extends EvaluationContext {
+  class MethodContext(val obj: ObjectValue) extends EvaluationContext {
     var vars = Map[String, Option[Value]]()
 
     def getVariable(name: String): Value = {
