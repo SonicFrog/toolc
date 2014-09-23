@@ -62,7 +62,19 @@ class Evaluator(ctx: Context, prog: Program) {
     case False()          => BoolValue(false)
     case And(lhs, rhs) => BoolValue(evalExpr(ectx, lhs).asBool && evalExpr(ectx, rhs).asBool)
     case Or(lhs, rhs)  => BoolValue(evalExpr(ectx, lhs).asBool || evalExpr(ectx, rhs).asBool)
-    case Plus(lhs, rhs) => IntValue(evalExpr(ectx, lhs).asInt + evalExpr(ectx, rhs).asInt)
+    case Plus(lhs, rhs) => evalExpr(ectx, lhs) match {
+      case IntValue(one) => evalExpr(ectx, rhs) match {
+        case IntValue(two) => IntValue(one + two)
+        case StringValue(two) => StringValue(one + two)
+        case _ => fatal("Can't concatenate " + evalExpr(ectx, lhs) + " with " + evalExpr(ectx, rhs)) 
+      }
+      case StringValue(one) => evalExpr(ectx, rhs) match {
+        case StringValue(two) => StringValue(one + two)
+        case IntValue(two) => StringValue(one + two)
+        case _ => fatal("Can't concatenate " + evalExpr(ectx, lhs) + " with " + evalExpr(ectx, rhs)) 
+      }
+      case _ => fatal("Can't concatenate " + evalExpr(ectx, lhs) + " with " + evalExpr(ectx, rhs)) 
+    }
     case Minus(lhs, rhs) => IntValue(evalExpr(ectx, lhs).asInt - evalExpr(ectx, rhs).asInt)
     case Times(lhs, rhs) => IntValue(evalExpr(ectx, lhs).asInt * evalExpr(ectx, rhs).asInt)
     case Div(lhs, rhs) => IntValue(evalExpr(ectx, lhs).asInt / evalExpr(ectx, rhs).asInt)
