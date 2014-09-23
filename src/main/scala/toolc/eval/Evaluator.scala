@@ -43,10 +43,7 @@ class Evaluator(ctx: Context, prog: Program) {
     
     //We assume that the parser does not let the user assign to a non declared variable and so we declare
     //it ourselves
-    case Assign(id, expr) => {
-      ectx.declareVariable(id.value)
-      ectx.setVariable(id.value, evalExpr(ectx, expr))
-    }    
+    case Assign(id, expr) => ectx.setVariable(id.value, evalExpr(ectx, expr))    
     
     //My bad simply use id.value to get the name as a string ...
     case ArrayAssign(id, index, expr) => {
