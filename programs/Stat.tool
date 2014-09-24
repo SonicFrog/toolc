@@ -11,7 +11,7 @@ class Matrix2x2 {
   var col1 : Int[];
   var col2 : Int[];
 
-  def init() : Matrix2 = {
+  def init() : Matrix2x2 = {
     col1 = new Int[2];
     col2 = new Int[2];
 
@@ -21,7 +21,6 @@ class Matrix2x2 {
   def toString() : String = {
     var line : Int;
     var col : Int;
-    var tab : Int[];
     var printLine : String;
 
     line = 0;
@@ -38,13 +37,13 @@ class Matrix2x2 {
     return printLine;
   }
 
-  def mult(x : Matrix2) : Matrix2x2 = {
+  def mult(x : Matrix2x2) : Matrix2x2 = {
     var line : Int;
     var col : Int;
     var common : Int;
     var result : Matrix2x2;
     var value : Int;
-    var osef : Int;
+    var osef : Matrix2x2;
 
     result = new Matrix2x2().init();
 
