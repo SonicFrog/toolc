@@ -1,3 +1,8 @@
 /project/
 *.swp
 /target/
+*.project
+.cache
+*.class
+target/
+bin/
