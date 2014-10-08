@@ -23,83 +23,85 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
      * takeWhile implementation which leaves the last unmatched character in the iterator
      */
     def takeWhile(f: Char => Boolean): List[Char] = {
-      var string : String = ""
+      var string: String = ""
       var currentChar = sourceIterator.head
-      
-      while(f(currentChar)) {
+
+      while (f(currentChar)) {
         string += sourceIterator.next
         currentChar = sourceIterator.head
       }
-      
+
       string.toList
     }
 
     def readNextToken(): Token = {
       val separators: List[Char] = "!+-*/=(){}[];:., \n".toList
       val whitespaces: List[Char] = "\n ".toList
-      val numbers: List[Char] = "0123456789".toList
+      val allNumbers = "0123456789".toList
+      val numbers = "[1-9]".r
+      val letters = "[a-Z]".r
 
       val keywordToToken = Map("if" -> new Token(IF), "else" -> new Token(ELSE), "new" -> new Token(NEW),
         "while" -> new Token(WHILE), "class" -> new Token(CLASS), "println" -> new Token(PRINTLN),
         "return" -> new Token(RETURN), "String" -> new Token(STRING), "Unit" -> new Token(UNIT),
         "Int" -> new Token(INT), "var" -> new Token(VAR), "main" -> new Token(MAIN), "def" -> new Token(DEF),
-        "false" -> new Token(FALSE), "true" -> new Token(TRUE), "this" -> new Token(THIS), 
+        "false" -> new Token(FALSE), "true" -> new Token(TRUE), "this" -> new Token(THIS),
         "Bool" -> new Token(BOOLEAN))
 
       if (!sourceIterator.hasNext) new Token(EOF)
-      
-      var firstChar = sourceIterator.next
 
-      while (whitespaces.contains(firstChar)) {
-        firstChar = sourceIterator.next
+      while(whitespaces.contains(sourceIterator.head)) {
+        sourceIterator.next
       }
 
-      val tokenType = firstChar match {
-        case '&' => ???
-        case '|' => ???
-        case '+' => PLUS
-        case '<' => LESSTHAN
-        case '-' => MINUS
-        case '*' => TIMES
-        case '!' => BANG
-        case '[' => LBRACKET
-        case ']' => RBRACKET
-        case '(' => LPAREN
-        case ')' => RPAREN
-        case ';' => SEMICOLON
-        case ':' => COLON
-        case '{' => LBRACE
-        case '}' => RBRACE
-        case '/' => DIV //TODO: Implement comments
-        case '.' => DOT
-        case ',' => COMMA
+      sourceIterator.next match {
+        case '&' =>
+          if (sourceIterator.head == '&') {
+            sourceIterator.next
+            new Token(AND)
+          } else {
+            new Token(BAD)
+          }
+        case '|' => 
+          if (sourceIterator.head == '|') {
+            sourceIterator.next
+            new Token(OR)
+          } else {
+            new Token(BAD)
+          }
+        case '+' => new Token(PLUS)
+        case '<' => new Token(LESSTHAN)
+        case '-' => new Token(MINUS)
+        case '*' => new Token(TIMES)
+        case '!' => new Token(BANG)
+        case '[' => new Token(LBRACKET)
+        case ']' => new Token(RBRACKET)
+        case '(' => new Token(LPAREN)
+        case ')' => new Token(RPAREN)
+        case ';' => new Token(SEMICOLON)
+        case ':' => new Token(COLON)
+        case '{' => new Token(LBRACE)
+        case '}' => new Token(RBRACE)
+        case '/' => new Token(DIV) //TODO: Implement comments
+        case '.' => new Token(DOT)
+        case ',' => new Token(COMMA)
         case '=' =>
-          if (sourceIterator.head == '=') { sourceIterator.next; EQUALS }
-          else EQSIGN
+          if (sourceIterator.head == '=') { sourceIterator.next; new Token(EQUALS) }
+          else new Token(EQSIGN)
 
-        case _ => BAD
-      }
-
-      if (tokenType == BAD) { //We have an identifier, a keyword or a litteral
-        var string: String = firstChar.toString
-        var nChar: Char = firstChar
-
-        if (firstChar == '\"') { //If the token starts with " it's a string literal
-          new STRLIT(source.takeWhile(_ != '\"').mkString)
-        } else if (numbers.contains(firstChar)) { //If it starts with a number => integer literal
-          val strInt = firstChar + takeWhile(!separators.contains(_)).mkString
-          new INTLIT(strInt.toInt)
-        } else { //Otherwise consider it an identifier or a keyword
-          while (!separators.contains(nChar)){
-            string += sourceIterator.next
-            nChar = sourceIterator.head
-          } 
-          
-          //Fetch it from the map of keywords and if it is not inside make a new ID 
+        case letters(c) => {
+          val string = c + source.takeWhile(!separators.contains(_)).mkString 
+          // On skip le premier caractère après la fin de l'ID avec cette méthode mais c'est la faute de takeWhile 
           keywordToToken.getOrElse(string, new ID(string))
         }
-      } else {
-        new Token(tokenType)
+
+        case numbers(d) => new INTLIT((d :: source.takeWhile(allNumbers.contains(_)).toList).mkString.toInt)
+
+        case '"' => new STRLIT(source.takeWhile(_ != '\"').mkString)
+
+        case '0' => new INTLIT(0)
+
+        case _ => new Token(BAD)
       }
     }
 
