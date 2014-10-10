@@ -38,8 +38,8 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
       val separators: List[Char] = "!+-*/=(){}[];:., \n".toList
       val whitespaces: List[Char] = "\n ".toList
       val allNumbers = "0123456789".toList
-      val numbers = "[1-9]".r
-      val letters = "[a-Z]".r
+      val numbers = "([1-9])".r
+      val letters = "([a-zA-Z])".r
 
       val keywordToToken = Map("if" -> new Token(IF), "else" -> new Token(ELSE), "new" -> new Token(NEW),
         "while" -> new Token(WHILE), "class" -> new Token(CLASS), "println" -> new Token(PRINTLN),
@@ -53,7 +53,7 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
       while(whitespaces.contains(sourceIterator.head)) {
         sourceIterator.next
       }
-
+      
       sourceIterator.next match {
         case '&' =>
           if (sourceIterator.head == '&') {
