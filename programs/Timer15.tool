@@ -1,5 +1,5 @@
 /**
- * Find the 1k first prime numbers for Tool
+ * Start a timer for fake seconds, with correct formatting!
  * @author: tristan Overney
  *
  **/
@@ -18,7 +18,7 @@
  		var min: Int;
  		var sec: Int;
  		var disp: Bool;
- 		fakeSeconds = 900;
+ 		fakeSeconds = 900; // 60*15 min = 900secs
 
  		while(0 < fakeSeconds)
  		{
