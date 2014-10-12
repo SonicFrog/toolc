@@ -29,6 +29,6 @@ object Main {
 
     val result = pipeline.run(ctx)(ctx.file)
 
-
+    ctx.reporter.terminateIfErrors
   }
 }

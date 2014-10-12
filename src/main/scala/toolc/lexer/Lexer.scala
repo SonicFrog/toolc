@@ -85,9 +85,23 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 								readNextToken
 							}
 							else if (sourceIterator.head == '*') {
-								sourceIterator.next;
-								//TODO: Implement /**/ comments
-								readNextToken
+								sourceIterator.next
+								var isClosed = false
+								while(sourceIterator.hasNext && !isClosed){
+									takeWhile(_ != '*')
+									if(sourceIterator.hasNext){
+										sourceIterator.next
+										if (sourceIterator.hasNext && sourceIterator.head == '/'){
+											sourceIterator.next
+											isClosed = true
+										}
+									}
+								}
+								if(isClosed){
+									readNextToken
+								} else {
+								  new Token(BAD)
+								}
 							}else {
 								new Token(DIV)
 							}
