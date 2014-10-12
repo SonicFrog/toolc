@@ -24,8 +24,8 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 		 */
 		def takeWhile(f: Char => Boolean): List[Char] = {
 			var string: String = ""
-			  
-			while (f(sourceIterator.head)) {
+			
+			while (sourceIterator.hasNext && f(sourceIterator.head)) {
 				string += sourceIterator.next
 			}
 	
@@ -46,78 +46,81 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 					"false" -> new Token(FALSE), "true" -> new Token(TRUE), "this" -> new Token(THIS),
 					"Bool" -> new Token(BOOLEAN), "object" -> new Token(OBJECT), "extends" -> new Token(EXTENDS), "length" -> new Token(LENGTH))
 			var token: Token = null;
-
+			
 			if (! sourceIterator.hasNext) {
 				token = new Token(EOF)
 			} else {
 				takeWhile(whitespaces.contains(_))
-
-				token = sourceIterator.next match {
-					case '&' => {
-						if (sourceIterator.head == '&') {
-							sourceIterator.next
-							new Token(AND)
-						} else {
-							new Token(BAD)
+				if (! sourceIterator.hasNext) {
+					token = new Token(EOF)
+				} else {
+					token = sourceIterator.next match {
+						case '&' => {
+							if (sourceIterator.head == '&') {
+								sourceIterator.next
+								new Token(AND)
+							} else {
+								new Token(BAD)
+							}
 						}
-					}
-					case '|' => {
-						if (sourceIterator.head == '|') {
-							sourceIterator.next
-							new Token(OR)
-						} else {
-							new Token(BAD)
+						case '|' => {
+							if (sourceIterator.head == '|') {
+								sourceIterator.next
+								new Token(OR)
+							} else {
+								new Token(BAD)
+							}
 						}
-					}
-					case '=' => {
-						if (sourceIterator.head == '=') { 
-							sourceIterator.next;
-							new Token(EQUALS)
-						} else {
-						  new Token(EQSIGN)
+						case '=' => {
+							if (sourceIterator.head == '=') { 
+								sourceIterator.next;
+								new Token(EQUALS)
+							} else {
+							  new Token(EQSIGN)
+							}
 						}
-					}
-					case '/' => {
-						if (sourceIterator.head == '/') {
-							takeWhile(_ != '\n')
-							readNextToken
+						case '/' => {
+							if (sourceIterator.head == '/') {
+								takeWhile(_ != '\n')
+								readNextToken
+							}
+							else if (sourceIterator.head == '*') {
+								sourceIterator.next;
+								//TODO: Implement /**/ comments
+								readNextToken
+							}else {
+								new Token(DIV)
+							}
 						}
-						else if (sourceIterator.head == '*') {
-							sourceIterator.next;
-							//TODO: Implement /**/ comments
-							readNextToken
-						}else {
-							new Token(DIV)
+						case '+' => new Token(PLUS)
+						case '<' => new Token(LESSTHAN)
+						case '-' => new Token(MINUS)
+						case '*' => new Token(TIMES)
+						case '!' => new Token(BANG)
+						case '[' => new Token(LBRACKET)
+						case ']' => new Token(RBRACKET)
+						case '(' => new Token(LPAREN)
+						case ')' => new Token(RPAREN)
+						case ';' => new Token(SEMICOLON)
+						case ':' => new Token(COLON)
+						case '{' => new Token(LBRACE)
+						case '}' => new Token(RBRACE)
+						case '.' => new Token(DOT)
+						case ',' => new Token(COMMA)
+						
+						case letters(c) => {
+							val string = c + takeWhile(!separators.contains(_)).mkString 
+									keywordToToken.getOrElse(string, new ID(string))
 						}
+		
+						case numbers(d) => new INTLIT((d :: takeWhile(allNumbers.contains(_)).toList).mkString.toInt)
+		
+						case '"' => new STRLIT(source.takeWhile(_ != '\"').mkString)
+		
+						case '0' => new INTLIT(0)
+		
+						case _ => new Token(BAD)
 					}
-					case '+' => new Token(PLUS)
-					case '<' => new Token(LESSTHAN)
-					case '-' => new Token(MINUS)
-					case '*' => new Token(TIMES)
-					case '!' => new Token(BANG)
-					case '[' => new Token(LBRACKET)
-					case ']' => new Token(RBRACKET)
-					case '(' => new Token(LPAREN)
-					case ')' => new Token(RPAREN)
-					case ';' => new Token(SEMICOLON)
-					case ':' => new Token(COLON)
-					case '{' => new Token(LBRACE)
-					case '}' => new Token(RBRACE)
-					case '.' => new Token(DOT)
-					case ',' => new Token(COMMA)
-					
-					case letters(c) => {
-						val string = c + takeWhile(!separators.contains(_)).mkString 
-								keywordToToken.getOrElse(string, new ID(string))
-					}
-	
-					case numbers(d) => new INTLIT((d :: takeWhile(allNumbers.contains(_)).toList).mkString.toInt)
-	
-					case '"' => new STRLIT(source.takeWhile(_ != '\"').mkString)
-	
-					case '0' => new INTLIT(0)
-	
-					case _ => new Token(BAD)
 				}
 			}
 			token.setPos(currentPos)
