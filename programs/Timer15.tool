@@ -3,7 +3,7 @@
  * @author: tristan Overney
  *
  **/
-
+// HELLO
  object Main {
  	def main() : Unit = {
  		println(new Timer().Start());
@@ -18,7 +18,7 @@
  		var min: Int;
  		var sec: Int;
  		var disp: Bool;
- 		fakeSeconds = 900; // 60*15 min = 900secs
+ 		fakeSeconds = 900; // 60 *15 min = 900secs
 
  		while(0 < fakeSeconds)
  		{
@@ -45,4 +45,4 @@
  		}
  		return true;
  	}
- }
+ }	

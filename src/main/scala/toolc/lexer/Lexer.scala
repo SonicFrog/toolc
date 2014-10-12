@@ -44,7 +44,7 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 					"return" -> new Token(RETURN), "String" -> new Token(STRING), "Unit" -> new Token(UNIT),
 					"Int" -> new Token(INT), "var" -> new Token(VAR), "main" -> new Token(MAIN), "def" -> new Token(DEF),
 					"false" -> new Token(FALSE), "true" -> new Token(TRUE), "this" -> new Token(THIS),
-					"Bool" -> new Token(BOOLEAN), "Object" -> new Token(OBJECT))
+					"Bool" -> new Token(BOOLEAN), "object" -> new Token(OBJECT))
 			var token: Token = null;
 
 			if (! sourceIterator.hasNext) {
