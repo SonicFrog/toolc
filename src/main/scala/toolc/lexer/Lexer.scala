@@ -62,6 +62,7 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 								sourceIterator.next
 								new Token(AND)
 							} else {
+								ctx.reporter.error("Expected '&&' found '&"+sourceIterator.head+"'", currentPos)
 								new Token(BAD)
 							}
 						}
@@ -70,6 +71,7 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 								sourceIterator.next
 								new Token(OR)
 							} else {
+								ctx.reporter.error("Expected '||' found '|"+sourceIterator.head+"'", currentPos)
 								new Token(BAD)
 							}
 						}
@@ -83,7 +85,7 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 						}
 						case '/' => {
 							if (sourceIterator.head == '/') {
-								takeWhile(_ != '\n')
+								source.takeWhile(_ != '\n')
 								readNextToken
 							}
 							else if (sourceIterator.head == '*') {
@@ -102,7 +104,8 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 								if(isClosed){
 									readNextToken
 								} else {
-								  new Token(BAD)
+									ctx.reporter.error("Multilines comment is never closed", currentPos)
+									new Token(BAD)
 								}
 							}else {
 								new Token(DIV)
@@ -131,11 +134,23 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 		
 						case numbers(d) => new INTLIT((d :: takeWhile(allNumbers.contains(_)).toList).mkString.toInt)
 		
-						case '"' => new STRLIT(source.takeWhile(_ != '\"').mkString)
+						case '"' => {
+							  val str = source.takeWhile(_ != '\"').mkString
+							  if(sourceIterator.hasNext){
+								  new STRLIT(str)
+							  }
+							  else{
+								  ctx.reporter.error("String never ends (missing a closing quote)",currentPos)
+								  new Token(BAD)
+							  }
+						}
 		
 						case '0' => new INTLIT(0)
 		
-						case _ => new Token(BAD)
+						case e @ _ => {
+						  ctx.reporter.error("Invalid character: '"+e+"'", currentPos)
+						  new Token(BAD)
+						}
 					}
 				}
 			}

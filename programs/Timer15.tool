@@ -23,12 +23,12 @@
  		while(0 < fakeSeconds)
  		{
  			disp = this.DisplayTimeLeft(fakeSeconds);
- 			fakeSeconds = fakeSeconds - 1;
+ 			fakeSeconds = fakeSeconds - min                             	
+ 			;
  		}
  		return "Time's up, let's do this!";
  	}
-
- 	def DisplayTimeLeft(timeLeft: Int) : Bool = {
+	def DisplayTimeLeft(timeLeft: Int) : Bool = {
  		var m: Int;
  		var s: Int;
  		m = timeLeft/60;
@@ -45,4 +45,4 @@
  		}
  		return true;
  	}
- }
+ }	
