@@ -38,7 +38,7 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 			val allNumbers = "0123456789".toList
 			val numbers = "([1-9])".r
 			val letters = "([a-zA-Z])".r
-			val tokenPos = currentPos //Position should be the start of the token not the end
+			var tokenPos = currentPos
 
 			val keywordToToken = Map("if" -> new Token(IF), "else" -> new Token(ELSE), "new" -> new Token(NEW),
 					"while" -> new Token(WHILE), "class" -> new Token(CLASS), "println" -> new Token(PRINTLN),
@@ -47,12 +47,12 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 					"false" -> new Token(FALSE), "true" -> new Token(TRUE), "this" -> new Token(THIS),
 					"Bool" -> new Token(BOOLEAN), "object" -> new Token(OBJECT), "extends" -> new Token(EXTENDS), "length" -> new Token(LENGTH))
 			var token: Token = null
-			val pos = currentPos
 			
 			if (! sourceIterator.hasNext) {
 				token = new Token(EOF)
 			} else {
 				takeWhile(whitespaces.contains(_))
+				tokenPos = currentPos
 				if (! sourceIterator.hasNext) {
 					token = new Token(EOF)
 				} else {
@@ -139,7 +139,10 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 					}
 				}
 			}
-			token.setPos(tokenPos)
+			if(!token.hasPosition)
+				token.setPos(tokenPos)
+			else
+				token
 		}
 
 		new Iterator[Token] {
