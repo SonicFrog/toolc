@@ -33,8 +33,8 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 		}
 
 		def readNextToken(): Token = {
-			val whitespaces: List[Char] = "\n \t\r\b\f".toList
-			val separators: List[Char] = "!+-*/<=|&(){}[];:.,\"".toList ::: whitespaces
+			val whitespaces: List[Char] = "\n \t\r".toList
+			val separators: List[Char] = "!+-*/<=|&(){}[];:.,".toList ++ whitespaces
 			val allNumbers = "0123456789".toList
 			val numbers = "([1-9])".r
 			val letters = "([a-zA-Z])".r
@@ -84,8 +84,9 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 							}
 						}
 						case '/' => {
+							println("'"+sourceIterator.head+"' "+currentPos.line+":"+currentPos.col)
 							if (sourceIterator.head == '/') {
-								source.takeWhile(_ != '\n')
+								takeWhile(_ != '\n')
 								readNextToken
 							}
 							else if (sourceIterator.head == '*') {
@@ -135,7 +136,7 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 						case numbers(d) => new INTLIT((d :: takeWhile(allNumbers.contains(_)).toList).mkString.toInt)
 		
 						case '"' => {
-							  val str = source.takeWhile(_ != '\"').mkString
+							  val str = source.takeWhile(head => head != '\"' && head != '\n').mkString
 							  if(sourceIterator.hasNext){
 								  new STRLIT(str)
 							  }
