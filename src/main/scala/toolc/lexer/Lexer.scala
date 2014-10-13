@@ -45,7 +45,8 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 					"Int" -> new Token(INT), "var" -> new Token(VAR), "main" -> new Token(MAIN), "def" -> new Token(DEF),
 					"false" -> new Token(FALSE), "true" -> new Token(TRUE), "this" -> new Token(THIS),
 					"Bool" -> new Token(BOOLEAN), "object" -> new Token(OBJECT), "extends" -> new Token(EXTENDS), "length" -> new Token(LENGTH))
-			var token: Token = null;
+			var token: Token = null
+			val pos = currentPos
 			
 			if (! sourceIterator.hasNext) {
 				token = new Token(EOF)
