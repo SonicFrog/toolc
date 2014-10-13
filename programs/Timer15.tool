@@ -23,8 +23,7 @@
  		while(0 < fakeSeconds)
  		{
  			disp = this.DisplayTimeLeft(fakeSeconds);
- 			fakeSeconds = fakeSeconds - min                             	
- 			;
+ 			fakeSeconds = fakeSeconds - 1;
  		}
  		return "Time's up, let's do this!";
  	}
@@ -45,4 +44,4 @@
  		}
  		return true;
  	}
- }	
+ }
