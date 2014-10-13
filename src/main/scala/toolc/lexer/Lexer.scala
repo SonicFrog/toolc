@@ -33,7 +33,7 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 		}
 
 		def readNextToken(): Token = {
-			val separators: List[Char] = "!+-*/<=(){}[];:., \n\t".toList
+			val separators: List[Char] = "!+-*/<=|&(){}[];:., \n\t".toList
 			val whitespaces: List[Char] = "\n \t".toList
 			val allNumbers = "0123456789".toList
 			val numbers = "([1-9])".r
