@@ -84,7 +84,6 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 							}
 						}
 						case '/' => {
-							println("'"+sourceIterator.head+"' "+currentPos.line+":"+currentPos.col)
 							if (sourceIterator.head == '/') {
 								takeWhile(_ != '\n')
 								readNextToken
