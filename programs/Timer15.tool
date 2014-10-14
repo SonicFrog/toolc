@@ -11,12 +11,9 @@
  }
 
  class Timer {
- 	var primes: Int[];
  	
  	def Start(): String = {
  		var fakeSeconds: Int;
- 		var min: Int;
- 		var sec: Int;
  		var disp: Bool;
  		fakeSeconds = 900; // 60 *15 min = 900secs
 
