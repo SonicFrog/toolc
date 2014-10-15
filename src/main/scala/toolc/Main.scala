@@ -25,10 +25,15 @@ object Main {
     val ctx = processOptions(args)
 
     val pipeline = Lexer andThen
-                   PrintTokens
+                   Parser
 
     val result = pipeline.run(ctx)(ctx.file)
 
     ctx.reporter.terminateIfErrors
+<<<<<<< HEAD
+=======
+
+    Printer(result)
+>>>>>>> a0624e8bd588639001df858caa05fe1bbc525588
   }
 }
