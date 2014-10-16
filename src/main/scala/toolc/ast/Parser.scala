@@ -38,12 +38,6 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       fatal("expected: " + (kind :: more.toList).mkString(" or ") + ", found: " + currentToken, currentToken)
     }
 
-    //Skips any token token that is of the given type or complains that an unexpected token was found
-    def skip(kind: TokenKind): Unit = {
-      if (kind == currentToken.kind) readToken
-      else expected(kind)
-    }
-    
     def expr : ExprTree = {
       currentToken.kind match {
         case IDKIND => ???
@@ -51,46 +45,47 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         case STRLITKIND => ???
         case TRUE => ???
         case FALSE => ???
-        
+
         case _ => expected(IDKIND, INTLITKIND, STRLITKIND, TRUE, FALSE)
       }
     }
-    
+
     def decl : Tree = {
       currentToken.kind match {
         case DEF => ??? //Declaring a method
         case CLASS => ??? //Declaring a class
         case VAR => ??? //Declaring a var
         case OBJECT => ??? //Declaring an object
-        
+        case IDKIND => ??? //Declaring a user defined class
+
         case _ => expected(DEF, CLASS, VAR, OBJECT)
       }
     }
 
     def statmt : StatTree = {
       currentToken.kind match {
-        case PRINTLN => //Println statement 
+        case PRINTLN => //Println statement
           readToken
-          skip(LPAREN)
+          eat(LPAREN)
           val e = expr
-          skip(RPAREN)
-          skip(SEMICOLON)
-          
+          eat(RPAREN)
+          eat(SEMICOLON)
+
           new Println(e)
 
-        case WHILE => { //While statement 
+        case WHILE => { //While statement
           readToken
-          skip(LPAREN)
+          eat(LPAREN)
           val cond = expr
-          skip(RPAREN)
+          eat(RPAREN)
           new While(cond, statmt)
         }
 
         case IF => { //If statement
           readToken
-          skip(LPAREN)
+          eat(LPAREN)
           val cond = expr
-          skip(RPAREN)
+          eat(RPAREN)
           val ifstat = statmt
           readToken
           if (currentToken.kind == ELSE) new If(cond, ifstat, Some(statmt))
@@ -100,33 +95,34 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         case LBRACE => { //Opening a new block of statements
           var statements : List[StatTree] = List()
           while(currentToken.kind != RBRACE) statements = statements :+ statmt
-          skip(RBRACE)
+          eat(RBRACE)
           new Block(statements)
         }
 
         case IDKIND => { //Assignation statement
           val id : ID = currentToken.asInstanceOf[ID]
           val identifier = new Identifier(id.value)
-          
+
           readToken
-          skip(EQSIGN)
-          
+          eat(EQSIGN)
+
           currentToken.kind match {
             case LBRACKET => {
               val arrayIndex = expr
-              skip(LBRACKET)
+              eat(LBRACKET)
               val assignExpr = expr
-              skip(SEMICOLON)
+              eat(SEMICOLON)
               new ArrayAssign(identifier, arrayIndex, assignExpr)
             }
+
             case _ => {
               val assignExpr = expr
-              skip(SEMICOLON)
+              eat(SEMICOLON)
               new Assign(identifier, assignExpr)
             }
           }
         }
-        
+
         case _ => ??? //Error ?
       }
     }
