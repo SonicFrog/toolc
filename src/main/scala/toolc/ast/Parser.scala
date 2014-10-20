@@ -5,6 +5,7 @@ import utils._
 import Trees._
 import lexer._
 import lexer.Tokens._
+import toolc.eval.Value
 
 object Parser extends Pipeline[Iterator[Token], Program] {
   def run(ctx: Context)(tokens: Iterator[Token]): Program = {
@@ -43,49 +44,63 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         case IDKIND => ???
         case INTLITKIND => ???
         case STRLITKIND => ???
+        case BANG => ???
         case TRUE => ???
         case FALSE => ???
 
-        case _ => expected(IDKIND, INTLITKIND, STRLITKIND, TRUE, FALSE)
+        case _ => expected(IDKIND, INTLITKIND, STRLITKIND, BANG, TRUE, FALSE)
       }
+    }
+    
+    def parseType : TypeTree = {
+      ???
     }
 
     def decl : Tree = {
       currentToken.kind match {
         case DEF => ??? //Declaring a method
         case CLASS => ??? //Declaring a class
-        case VAR => ??? //Declaring a var
+        case VAR => {
+          readToken
+          val varId = currentToken match {
+            case id : ID => new Identifier(id.value) 
+            case _ => expected(IDKIND)
+          }
+          eat(COLON)
+          readToken
+          val varType = parseType
+          eat(SEMICOLON)
+          new VarDecl(varType, varId)
+        }
         case OBJECT => ??? //Declaring an object
-        case IDKIND => ??? //Declaring a user defined class
 
         case _ => expected(DEF, CLASS, VAR, OBJECT)
       }
     }
 
+    def findExprInParenthesis : ExprTree = {
+        eat(LPAREN)
+        val e = expr
+        eat(RPAREN)
+        e
+    }
+    
     def statmt : StatTree = {
       currentToken.kind match {
         case PRINTLN => //Println statement
           readToken
-          eat(LPAREN)
-          val e = expr
-          eat(RPAREN)
+          val toPrint = findExprInParenthesis
           eat(SEMICOLON)
-
-          new Println(e)
+          new Println(toPrint)
 
         case WHILE => { //While statement
           readToken
-          eat(LPAREN)
-          val cond = expr
-          eat(RPAREN)
-          new While(cond, statmt)
+          new While(findExprInParenthesis, statmt)
         }
 
         case IF => { //If statement
           readToken
-          eat(LPAREN)
-          val cond = expr
-          eat(RPAREN)
+          val cond = findExprInParenthesis
           val ifstat = statmt
           readToken
           if (currentToken.kind == ELSE) new If(cond, ifstat, Some(statmt))
