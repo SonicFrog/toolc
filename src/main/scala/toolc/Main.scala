@@ -31,6 +31,6 @@ object Main {
 
     ctx.reporter.terminateIfErrors
 
-    Printer(result)
+    println(Printer(result))
   }
 }
