@@ -44,22 +44,133 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     }
 
 
-    def isTerminal : Boolean = isOneOf(IDKIND, TRUE, FALSE)
+    def parseTerminal : ExprTree = currentToken.kind match {
+      case STRLITKIND => new StringLit(currentToken.asInstanceOf[STRLIT].value)
+      case INTLITKIND => new IntLit(currentToken.asInstanceOf[INTLIT].value)
+      case TRUE => new True
+      case FALSE => new False
+      case THIS => new This
+      case IDKIND => new Identifier(currentToken.asInstanceOf[ID].value)
+
+      case _ => null //No terminal but to be handled when unwinding stack
+    }
+
+    def parseOr : ExprTree = {
+      val lhs = parseAnd
+
+      if (currentToken.kind == OR) {
+        readToken
+
+        val rhs = parseAnd
+
+        new Or(lhs, rhs)
+      } else {
+        lhs
+      }
+    }
+
+    def parseAnd : ExprTree = {
+      val lhs = parseEquals
+
+      if (currentToken.kind == AND) {
+        readToken
+        val rhs = parseEquals
+
+        new And(lhs, rhs)
+      } else {
+        lhs
+      }
+    }
+
+    def parseEquals : ExprTree = {
+      val lhs = parseLessThan
+
+      if (currentToken.kind == EQUALS) {
+        readToken
+        val rhs = parseLessThan
+        new Equals(lhs, rhs)
+      } else lhs
+    }
+
+    def parseLessThan : ExprTree = {
+      val lhs = parsePlusMinus
+
+      if (currentToken.kind == LESSTHAN) {
+        readToken
+        val rhs = parsePlusMinus
+        new LessThan(lhs, rhs)
+      } else lhs
+    }
+
+    def parsePlusMinus : ExprTree = {
+      val lhs = parseMultDiv
+
+      if (currentToken.kind == PLUS) {
+        readToken
+        val rhs = parseMultDiv
+        new Plus(lhs, rhs)
+      } else if (currentToken.kind == MINUS) {
+        readToken
+        var rhs = parseMultDiv
+        new Minus(lhs, rhs)
+      } else lhs
+    }
+
+    def parseMultDiv : ExprTree = {
+      val lhs = parseBang
+
+      if (currentToken.kind == TIMES) {
+        readToken
+        val rhs = parseBang
+        new Times(lhs, rhs)
+      } else if (currentToken.kind == DIV) {
+        readToken
+        val rhs = parseBang
+        new Div(lhs, rhs)
+      } else lhs
+    }
+
+    def parseBang : ExprTree = {
+      if (currentToken.kind == BANG) {
+        readToken
+        new Not(parseParens)
+      } else parseParens
+    }
+
+    def parseDot : ExprTree = {
+      val lhs = parseParens
+
+      if (currentToken.kind == DOT) {
+        readToken
+        currentToken.kind match {
+          case IDKIND => {
+            val args : ListBuffer[ExprTree] = new ListBuffer
+            val methodName : Identifier = new Identifier(currentToken.asInstanceOf[ID].value)
+            eat(LPAREN)
+            while(currentToken.kind != RPAREN) {
+              args += expr
+            }
+            eat(RPAREN)
+            new MethodCall(lhs, methodName, args.toList)
+          }
+          case LENGTH => new ArrayLength(lhs)
+          case _ => expected(IDKIND, LENGTH)
+        }
+      } else lhs
+    }
+
+    def parseParens : ExprTree = {
+      if (currentToken.kind == LPAREN) {
+        eat(LPAREN)
+        val inside = expr
+        eat(RPAREN)
+        inside
+      }
+      else parseTerminal
+    }
 
     def expr: ExprTree = {
-      currentToken.kind match {
-        case IDKIND => ???
-        case INTLITKIND => ???
-        case STRLITKIND => ???
-        case BANG => ???
-        case TRUE => ???
-        case FALSE => ???
-        case NEW => ???
-        case LPAREN => ???
-        case THIS => ???
-
-        case _ => expected(IDKIND, INTLITKIND, STRLITKIND, BANG, TRUE, FALSE)
-      }
+      parseOr
     }
 
     def parseType: TypeTree = {
