@@ -21,12 +21,13 @@ object Printer {
 
       case MethodDecl(retType, id, args, vars, stats, retExpr) =>
         "def " + this(id) + "(" + args.map(this(_)).mkString(", ") +") : " + this(retType) + " = { \n" +
-        vars.map(this(_)).mkString("\n") + stats.map(this(_)).mkString("\n") + "return " + this(retExpr) + ";\n}"
+        vars.map(this(_)).mkString("\n") + stats.map(this(_)).mkString("\n") +
+        "return " + this(retExpr) + ";\n}"
 
       case VarDecl(tpe, id) => "var " + this(id) + " : " + this(tpe) + ";"
       case Formal(tpe, id) => this(id) + " : " + this(tpe)
 
-      case IntArrayType() => "Int["
+      case IntArrayType() => "Int[]"
       case IntType() => "Int"
       case BooleanType() => "Boolean"
       case StringType() => "String"

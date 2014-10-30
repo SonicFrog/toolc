@@ -4,6 +4,7 @@
 *.project
 .cache
 *.class
+*.tool
 target/
 bin/
 lib/

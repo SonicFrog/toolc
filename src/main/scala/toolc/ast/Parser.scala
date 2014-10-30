@@ -181,7 +181,8 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         currentToken.kind match {
           case IDKIND => {
             val args : ListBuffer[ExprTree] = new ListBuffer
-            val methodName : Identifier = new Identifier(currentToken.asInstanceOf[ID].value)
+            val methodName : Identifier =
+              new Identifier(currentToken.asInstanceOf[ID].value)
             eat(LPAREN)
             while(currentToken.kind != RPAREN) {
               args += expr

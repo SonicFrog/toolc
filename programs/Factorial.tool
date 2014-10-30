@@ -1,16 +1,17 @@
 object Factorial {
-    def main() : Unit = {
-        println(new Fact().computeFactorial(10));        
-    }
+	def main() : Unit = {
+		println(new Fact().Factorial(10));
+	 }
+}
+class Fact {
+	def Factorial(num : Int) : Int = {
+		return this.FactAux(num, 1);
+	 }
+	def FactAux(num : Int, acc : Int) : Int = {
+		var answer : Int;
+		 if(num < 1) answer = acc;
+		 else answer = this.FactAux(num - 1, acc * num);
+		 return answer;
+	 }
 }
 
-class Fact {
-    def computeFactorial(num : Int) : Int = {
-        var num_aux : Int;
-        if (num < 1)
-            num_aux = 1;
-        else
-            num_aux = num * (this.computeFactorial(num - 1));
-        return num_aux;
-    }
-}

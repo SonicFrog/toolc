@@ -1,63 +1,74 @@
-/**
- * Find the 1k first prime numbers for Tool
- * @author: tristan Overney
- *
- **/
+object Prime {
 
- object Main {
- 	def main() : Unit = {
- 		println(new PR().Compute());
- 	}
- }
+	def main() : Unit = {
+        println(new Primes().init(1000).printPrimes());
+    }
 
- class PR {
- 	var primes: Int[];
- 	
- 	def Compute(): String = {
- 		var index: Int;
- 		var pIndex: Int;
- 		var nextToTest: Int;
- 		var isDividable: Bool;
- 		var skip: Bool;
+}
 
- 		primes = new Int[1000];
- 		println("2");
- 		primes[0] = 2;
- 		index = 0;
- 		pIndex = 0;
- 		nextToTest = 3;
- 		skip = false;
- 		while((primes[999] == 0))
- 		{
- 			// println("Loop1");
- 			while(!(primes[index] == 0) && !skip)
- 			{
- 				// println("loop2");
- 				isDividable = this.Multiple(nextToTest, primes[index]);
- 				if(isDividable) skip = true;
- 				else index = index + 1;
- 				// println(nextToTest);
- 				// println(isDividable);
- 			}
- 			if(!skip){
- 				pIndex = pIndex + 1;
- 				primes[pIndex] = nextToTest;
- 				println(nextToTest);
- 			}
- 			else skip = false;
- 			index = 0;
- 			nextToTest = nextToTest + 1;
- 		}
- 		return "Done";
- 	}
+class Primes {
+	
+	var primeNumbers : Int[];
+	var size : Int;
+	
+	def init(number : Int) : Primes = {
+        var i : Int;
+        var j : Int;
+        var potentialPrime : Int;
+        var maxDivisor : Int;
+        
+        size = number;
+        potentialPrime = 3;
+        primeNumbers = new Int[number];
+        primeNumbers[0] = 2;
+        i = 1;
+        while(i < size){
+        	j = 1;
+        	/* +1 Since we don't have <= and +1 since it's always lower than the real square root*/
+   	        maxDivisor = (new Sqrt().compute(potentialPrime)) + 2;
+        	while(j < maxDivisor){
+        		j = j + 1;
+        		if(j == maxDivisor){
+        			primeNumbers[i] = potentialPrime;
+        			i = i + 1;	
+        		}else if((potentialPrime / j) * j == potentialPrime){
+        			j = maxDivisor;
+        		}
+        	}
+        	potentialPrime = potentialPrime + 2;
+        }
+        return this;
+    }
+    
+    def printPrimes() : String = {
+    	var result : String;
+    	var i : Int;
+    	i = 1;
+    	
+    	result = "" + primeNumbers[0];
+    	
+    	while(i < size){
+    		result = result + ", " + primeNumbers[i];
+    	    i = i + 1;
+    	}
+    	
+    	return result;
+    }
+}
 
- 	def Multiple(toTest: Int, divider: Int) : Bool = {
- 		var isMult: Bool;
- 		while (0 < toTest){
- 			toTest = toTest - divider;
- 		}
- 		if(toTest == 0) isMult = true;
- 		else isMult = false;
- 		return isMult;
- 	}
- }
+/*Copy of class Sqrt*/
+class Sqrt {
+	
+	var estimate : Int;
+	var counter : Int;
+	def compute(number : Int) : Int = {
+        estimate = number;
+        counter = 0;
+        /* 20 iterations should be enough for all integers*/
+        while(counter < 20){
+        	estimate = (estimate/2 + number/(estimate*2));
+        	counter = counter + 1;
+        }
+        return estimate;
+    }
+}
