@@ -57,18 +57,32 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         literal
       }
 
-      case TRUE => new True
-      case FALSE => new False
-      case THIS => new This
-      case IDKIND => new Identifier(currentToken.asInstanceOf[ID].value)
+      case TRUE => {
+        readToken
+        new True
+      }
+      case FALSE => {
+    	readToken
+        new False
+      }
+      case THIS => {
+        readToken
+        new This
+      }
+      case IDKIND => {
+        val id = new Identifier(currentToken.asInstanceOf[ID].value)
+        readToken
+        id
+      }
       case NEW => {
         readToken
         currentToken.kind match {
           case IDKIND => {
+            val id = new Identifier(currentToken.asInstanceOf[ID].value)
             readToken
             eat(LPAREN)
             eat(RPAREN)
-            new New(new Identifier(currentToken.asInstanceOf[ID].value))
+            new New(id)
           }
 
           case INT => {
@@ -84,7 +98,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
             }
           }
 
-          case _ => expected(IDKIND)
+          case _ => expected(IDKIND, INT)
         }
       }
 
@@ -147,7 +161,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         new Plus(lhs, rhs)
       } else if (currentToken.kind == MINUS) {
         readToken
-        var rhs = parseMultDiv
+        val rhs = parseMultDiv
         new Minus(lhs, rhs)
       } else lhs
     }
@@ -169,8 +183,8 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     def parseBang : ExprTree = {
       if (currentToken.kind == BANG) {
         readToken
-        new Not(parseParens)
-      } else parseParens
+        new Not(parseDot)
+      } else parseDot
     }
 
     def parseDot : ExprTree = {
@@ -183,9 +197,10 @@ object Parser extends Pipeline[Iterator[Token], Program] {
             val args : ListBuffer[ExprTree] = new ListBuffer
             val methodName : Identifier =
               new Identifier(currentToken.asInstanceOf[ID].value)
+            readToken
             eat(LPAREN)
             while(currentToken.kind != RPAREN) {
-              args += expr
+              args += expr 
             }
             eat(RPAREN)
             new MethodCall(lhs, methodName, args.toList)
