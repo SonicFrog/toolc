@@ -189,8 +189,9 @@ object Parser extends Pipeline[Iterator[Token], Program] {
 
     def parseDot : ExprTree = {
       val lhs = parseParens
+      var meth = null
 
-      if (currentToken.kind == DOT) {
+      while (currentToken.kind == DOT) {
         readToken
         currentToken.kind match {
           case IDKIND => {
@@ -200,15 +201,20 @@ object Parser extends Pipeline[Iterator[Token], Program] {
             readToken
             eat(LPAREN)
             while(currentToken.kind != RPAREN) {
-              args += expr 
+              args += expr
             }
             eat(RPAREN)
-            new MethodCall(lhs, methodName, args.toList)
+            if (meth == null)
+              meth = new MethodCall(lhs, methodName, args.toList)
+            else
+              meth = new MethodCall(meth, methodName, args.toList)
           }
           case LENGTH => new ArrayLength(lhs)
           case _ => expected(IDKIND, LENGTH)
         }
-      } else lhs
+      }
+      if (meth == null) lhs
+      else meth
     }
 
     def parseParens : ExprTree = {
