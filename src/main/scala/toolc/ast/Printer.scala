@@ -10,8 +10,9 @@ object Printer {
         classes.map(this(_)).mkString("\n")
 
       case MainObject(id, stats) =>
-        "object " + this(id) + " : Unit = { " +
-        stats.map(this(_)).mkString("\n") + "}"
+        "object " + this(id) + " { " +
+          " def main : Unit = { " +
+        stats.map(this(_)).mkString("\n") + "}\n}"
 
       case ClassDecl(id, parent, vars, methods) =>
         "class " + this(id) +
