@@ -62,7 +62,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         new True
       }
       case FALSE => {
-    	readToken
+        readToken
         new False
       }
       case THIS => {
@@ -106,40 +106,52 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     }
 
     def parseOr : ExprTree = {
-      val lhs = parseAnd
+      var lhs = parseAnd
 
-      if (currentToken.kind == OR) {
+      while (currentToken.kind == OR) {
         readToken
 
         val rhs = parseAnd
 
-        new Or(lhs, rhs)
-      } else {
-        lhs
+        if (lhs == null || rhs == null) {
+          fatal("|| is a binary operator")
+        }
+
+        lhs = new Or(lhs, rhs)
       }
+      lhs
     }
 
     def parseAnd : ExprTree = {
-      val lhs = parseEquals
+      var lhs = parseEquals
 
-      if (currentToken.kind == AND) {
+      while (currentToken.kind == AND) {
         readToken
         val rhs = parseEquals
 
-        new And(lhs, rhs)
-      } else {
-        lhs
+        if (lhs == null || rhs == null) {
+          fatal("&& is binary operator")
+        }
+
+        lhs = new And(lhs, rhs)
       }
+      lhs
     }
 
     def parseEquals : ExprTree = {
-      val lhs = parseLessThan
+      var lhs = parseLessThan
 
-      if (currentToken.kind == EQUALS) {
+      while (currentToken.kind == EQUALS) {
         readToken
         val rhs = parseLessThan
-        new Equals(lhs, rhs)
-      } else lhs
+
+        if (rhs == null || lhs == null) {
+          fatal("== is a binary operator")
+        }
+        lhs = new Equals(lhs, rhs)
+      }
+
+      lhs
     }
 
     def parseLessThan : ExprTree = {
@@ -148,36 +160,52 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       if (currentToken.kind == LESSTHAN) {
         readToken
         val rhs = parsePlusMinus
+
+        if (rhs == null || lhs == null) {
+          fatal("< is a binary operator")
+        }
+
         new LessThan(lhs, rhs)
       } else lhs
     }
 
     def parsePlusMinus : ExprTree = {
-      val lhs = parseMultDiv
+      var lhs = parseMultDiv
 
       if (currentToken.kind == PLUS) {
         readToken
         val rhs = parseMultDiv
-        new Plus(lhs, rhs)
-      } else if (currentToken.kind == MINUS) {
-        readToken
-        val rhs = parseMultDiv
-        new Minus(lhs, rhs)
-      } else lhs
+
+        if (currentToken.kind == PLUS) {
+          if (rhs == null || lhs == null) {
+            fatal("+ is a binary operator")
+          }
+          lhs == new Plus(lhs, rhs)
+        } else if (currentToken.kind == MINUS) {
+          if (rhs == null || lhs == null) {
+            fatal("- is a binary operator")
+          }
+          lhs = new Minus(lhs, rhs)
+        }
+      }
+      lhs
     }
 
     def parseMultDiv : ExprTree = {
-      val lhs = parseBang
+      var lhs = parseBang
 
-      if (currentToken.kind == TIMES) {
-        readToken
-        val rhs = parseBang
-        new Times(lhs, rhs)
-      } else if (currentToken.kind == DIV) {
-        readToken
-        val rhs = parseBang
-        new Div(lhs, rhs)
-      } else lhs
+      while (currentToken.kind == TIMES || currentToken.kind == DIV) {
+        if (currentToken.kind == TIMES) {
+          readToken
+          val rhs = parseBang
+          lhs = new Times(lhs, rhs)
+        } else {
+          readToken
+          val rhs = parseBang
+          lhs = new Div(lhs, rhs)
+        }
+      }
+      lhs
     }
 
     def parseBang : ExprTree = {
@@ -189,7 +217,8 @@ object Parser extends Pipeline[Iterator[Token], Program] {
 
     def parseDot : ExprTree = {
       val lhs = parseParens
-      var meth = null
+      var meth : ExprTree = null
+      var hasMoreArgs : Boolean = true
 
       while (currentToken.kind == DOT) {
         readToken
@@ -200,8 +229,14 @@ object Parser extends Pipeline[Iterator[Token], Program] {
               new Identifier(currentToken.asInstanceOf[ID].value)
             readToken
             eat(LPAREN)
-            while(currentToken.kind != RPAREN) {
+            while (hasMoreArgs) {
               args += expr
+              if (currentToken.kind == COMMA) {
+                readToken
+                hasMoreArgs = true
+              } else {
+                hasMoreArgs = false;
+              }
             }
             eat(RPAREN)
             if (meth == null)
@@ -209,7 +244,8 @@ object Parser extends Pipeline[Iterator[Token], Program] {
             else
               meth = new MethodCall(meth, methodName, args.toList)
           }
-          case LENGTH => new ArrayLength(lhs)
+
+          case LENGTH => readToken; new ArrayLength(lhs)
           case _ => expected(IDKIND, LENGTH)
         }
       }
@@ -233,11 +269,16 @@ object Parser extends Pipeline[Iterator[Token], Program] {
 
     def parseType: TypeTree = {
       currentToken.kind match {
-        case IDKIND => new Identifier(currentToken.asInstanceOf[ID].value)
+        case IDKIND => {
+          val id = new Identifier(currentToken.asInstanceOf[ID].value)
+          readToken
+          id
+        }
         case INT =>
-          readToken; currentToken.kind match {
-            case RBRACKET =>
-              eat(RBRACKET); eat(LBRACKET); new IntArrayType()
+          readToken
+          currentToken.kind match {
+            case LBRACKET =>
+              eat(LBRACKET); eat(RBRACKET); new IntArrayType()
             case _ => new IntType()
           }
         case STRING => eat(STRING); new StringType()
@@ -325,11 +366,14 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       var variables : ListBuffer[VarDecl] = ListBuffer()
       var statements : ListBuffer[StatTree] = ListBuffer()
 
+
       readToken
 
       eat(LPAREN)
 
-      while (currentToken.kind == IDKIND) {
+      var hasMoreArgs : Boolean = currentToken.kind != RPAREN
+
+      while (hasMoreArgs) {
         val id = currentToken match {
           case a : ID => new Identifier(a.value)
           case _ => expected(IDKIND)
@@ -342,7 +386,11 @@ object Parser extends Pipeline[Iterator[Token], Program] {
 
         args +=  Formal(tpe, new Identifier(id.value))
 
-        eat(COMMA)
+        if (currentToken.kind == COMMA) {
+          eat(COMMA)
+        } else {
+          hasMoreArgs = false
+        }
       }
 
       eat(RPAREN)
@@ -380,9 +428,8 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         case id: ID => new Identifier(id.value)
         case _ => expected(IDKIND)
       }
-
+      eat(IDKIND)
       eat(COLON)
-      readToken
       val varType = parseType
       eat(SEMICOLON)
       new VarDecl(varType, varId)
@@ -397,11 +444,12 @@ object Parser extends Pipeline[Iterator[Token], Program] {
 
     def statmt: StatTree = {
       currentToken.kind match {
-        case PRINTLN => //Println statement
+        case PRINTLN => {//Println statement
           readToken
           val toPrint = findExprInParenthesis
           eat(SEMICOLON)
           new Println(toPrint)
+        }
 
         case WHILE => { //While statement
           readToken
@@ -418,6 +466,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
             }
 
         case LBRACE => { //Opening a new block of statements
+          eat(LBRACE);
           var statements: List[StatTree] = List()
           while (currentToken.kind != RBRACE) statements = statements :+ statmt
           eat(RBRACE)
