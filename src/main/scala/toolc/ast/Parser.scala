@@ -75,6 +75,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         readToken
         id
       }
+
       case NEW => {
         readToken
         currentToken.kind match {
@@ -213,12 +214,12 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     def parseBang : ExprTree = {
       if (currentToken.kind == BANG) {
         readToken
-        new Not(parseDot)
-      } else parseDot
+        new Not(parseBracket)
+      } else parseBracket
     }
 
     def parseDot : ExprTree = {
-      val lhs = parseBracket
+      val lhs = parseParens
       var meth : ExprTree = null
       var hasMoreArgs : Boolean = true
 
@@ -258,7 +259,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     }
 
     def parseBracket : ExprTree = {
-      var lhs = parseParens
+      var lhs = parseDot
 
       while(currentToken.kind == LBRACKET) {
         readToken
@@ -325,7 +326,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
           case name : ID => new Identifier(name.value)
           case _ => expected(IDKIND)
         }
-
+        readToken
         parent = Some(parentName)
       }
 

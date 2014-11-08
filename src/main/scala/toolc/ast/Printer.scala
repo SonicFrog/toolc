@@ -10,8 +10,8 @@ object Printer {
         classes.map(this(_)).mkString("\n")
 
       case MainObject(id, stats) =>
-        "object " + this(id) + " { " +
-          " def main : Unit = { " +
+        "object " + this(id) + " {\n" +
+          " def main() : Unit = { " +
         stats.map(this(_)).mkString("\n") + "}\n}"
 
       case ClassDecl(id, parent, vars, methods) =>
@@ -62,7 +62,7 @@ object Printer {
       case Identifier(value) => value
       case This() => "this"
       case NewIntArray(size) => "new Int["+ this(size) +"]"
-      case New(tpe) => "new " + this(tpe)
+      case New(tpe) => "new " + this(tpe) + "()"
       case Not(expr) => "!" + this(expr)
     }
   }
