@@ -69,8 +69,9 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         readToken
         new This
       }
+
       case IDKIND => {
-        val id = new Identifier(currentToken.asInstanceOf[ID].value)
+        val id : ExprTree = new Identifier(currentToken.asInstanceOf[ID].value)
         readToken
         id
       }
@@ -217,7 +218,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     }
 
     def parseDot : ExprTree = {
-      val lhs = parseParens
+      val lhs = parseBracket
       var meth : ExprTree = null
       var hasMoreArgs : Boolean = true
 
@@ -230,11 +231,13 @@ object Parser extends Pipeline[Iterator[Token], Program] {
               new Identifier(currentToken.asInstanceOf[ID].value)
             readToken
             eat(LPAREN)
+
+            hasMoreArgs = currentToken.kind != RPAREN
+
             while (hasMoreArgs) {
               args += expr
               if (currentToken.kind == COMMA) {
                 readToken
-                hasMoreArgs = true
               } else {
                 hasMoreArgs = false;
               }
@@ -252,6 +255,18 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       }
       if (meth == null) lhs
       else meth
+    }
+
+    def parseBracket : ExprTree = {
+      var lhs = parseParens
+
+      while(currentToken.kind == LBRACKET) {
+        readToken
+        val index = expr
+        eat(RBRACKET)
+        lhs = new ArrayRead(lhs, index)
+      }
+      lhs
     }
 
     def parseParens : ExprTree = {
@@ -461,9 +476,10 @@ object Parser extends Pipeline[Iterator[Token], Program] {
           readToken
           val cond = findExprInParenthesis
           val ifstat = statmt
-          readToken
-          if (currentToken.kind == ELSE) new If(cond, ifstat, Some(statmt))
-          else new If(cond, ifstat, None)
+          if (currentToken.kind == ELSE) {
+            readToken
+            new If(cond, ifstat, Some(statmt))
+              } else new If(cond, ifstat, None)
             }
 
         case LBRACE => { //Opening a new block of statements
@@ -479,18 +495,20 @@ object Parser extends Pipeline[Iterator[Token], Program] {
           val identifier = new Identifier(id.value)
 
           readToken
-          eat(EQSIGN)
 
           currentToken.kind match {
             case LBRACKET => {
-              val arrayIndex = expr
               eat(LBRACKET)
+              val arrayIndex = expr
+              eat(RBRACKET)
+              eat(EQSIGN)
               val assignExpr = expr
               eat(SEMICOLON)
               new ArrayAssign(identifier, arrayIndex, assignExpr)
             }
 
             case _ => {
+              eat(EQSIGN)
               val assignExpr = expr
               eat(SEMICOLON)
               new Assign(identifier, assignExpr)
