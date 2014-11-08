@@ -172,16 +172,17 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     def parsePlusMinus : ExprTree = {
       var lhs = parseMultDiv
 
-      if (currentToken.kind == PLUS) {
-        readToken
-        val rhs = parseMultDiv
-
+      while (currentToken.kind == PLUS || currentToken.kind == MINUS) {
         if (currentToken.kind == PLUS) {
+          readToken
+          val rhs = parseMultDiv
           if (rhs == null || lhs == null) {
             fatal("+ is a binary operator")
           }
-          lhs == new Plus(lhs, rhs)
+          lhs = new Plus(lhs, rhs)
         } else if (currentToken.kind == MINUS) {
+          readToken
+          val rhs = parseMultDiv
           if (rhs == null || lhs == null) {
             fatal("- is a binary operator")
           }
