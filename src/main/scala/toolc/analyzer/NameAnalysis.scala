@@ -14,28 +14,37 @@ object NameAnalysis extends Pipeline[Program, Program] {
     /**
       * Collects class variables and checks if any is define twice
       **/
-    def collectVariables(cls : ClassDecl) : ClassSymbol = {
-      val sym = new ClassSymbol(cls.id.value)
-      cls.vars.foreach { x =>
-        sym.members = sym.members.get(x.id.value) match {
-          case Some(vs) => fatal(x.id.value + " already declared")
-          case None => sym.members.updated(x.id.value, new VariableSymbol(x.id.value))
+    def collectVariables(cls : ClassDecl) : Map[String, VariableSymbol] = {
+      def inner(sym : Map[String, VariableSymbol], vars : List[VarDecl]) :
+          Map[String, VariableSymbol] = {
+        vars match {
+          case Nil => sym
+          case x :: xs => sym.get(x.id.value) match {
+            case None =>
+              inner(sym.updated(x.id.value, new VariableSymbol(x.id.value)), xs)
+            case Some(ms) =>
+              fatal(ms.name + " declared twice in class " + cls.id.value)
+          }
         }
       }
-      sym
+      inner(Map(), cls.vars)
     }
 
     /**
       * Collects variables declared in the current method and checks if
-      * they have been defined higher up in the scope.
+      * they are defined twice in the current scope
       **/
     def collectMethodVariables(meth : MethodDecl, ms : MethodSymbol) : Map[String, VariableSymbol] = {
       def inner(map : Map[String, VariableSymbol], vars : List[VarDecl]) :
           Map[String, VariableSymbol] = {
         vars match {
           case Nil => map
-          case x :: xs =>
-            inner(map.updated(x.id.value, new VariableSymbol(x.id.value)), xs)
+          case x :: xs => map.get(x.id.value) match {
+            case None =>
+              inner(map.updated(x.id.value, new VariableSymbol(x.id.value)), xs)
+            case Some(vs) =>
+              fatal(vs.name + " already declared in method " + ms.name)
+          }
         }
       }
       inner(Map(), meth.vars)
@@ -76,14 +85,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
 
     val classes = collectClasses(prog)
 
-    prog.classes.zip(classes.map(_._2)).foreach {
-      (cls : ClassDecl, clsSym : ClassSymbol) => {
-        cls.setSymbol(collectMethods(cls, clsSym))
-        cls.methods.foreach { y =>
-          ???
-        }
-      }
-    }
+
 
     // Make sure you check for all constraints
     prog

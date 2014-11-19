@@ -46,7 +46,7 @@ object Trees {
   case class True() extends ExprTree
   case class False() extends ExprTree
   case class Identifier(value: String) extends TypeTree with ExprTree with Symbolic[Symbol]
-  case class This() extends ExprTree
+  case class This() extends ExprTree with Symbolic[ClassSymbol]
   case class NewIntArray(size: ExprTree) extends ExprTree
   case class New(tpe: Identifier) extends ExprTree
   case class Not(expr: ExprTree) extends ExprTree

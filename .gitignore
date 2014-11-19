@@ -8,3 +8,5 @@
 target/
 bin/
 lib/
+/.classpath
+/log.log
