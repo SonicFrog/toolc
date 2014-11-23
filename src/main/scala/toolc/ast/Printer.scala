@@ -1,5 +1,4 @@
-package toolc
-package ast
+package toolc.ast
 
 import Trees._
 
@@ -14,11 +13,11 @@ object Printer {
           " def main() : Unit = { " +
         stats.map(this(_)).mkString("\n") + "}\n}"
 
-      case ClassDecl(id, parent, vars, methods) =>
-        "class " + this(id) +
-        parent.flatMap(x => Some(" extends " + this(x))).getOrElse("") + "{" +
-        vars.map(x => this(x)).mkString("\n") +
-        methods.map(x => this(x)).mkString("\n") + "}"
+      case dcl : ClassDecl =>
+        "class " + this(dcl.id) + "#" + dcl.getSymbol.id +
+        dcl.parent.flatMap(x => Some(" extends " + this(x))).getOrElse("") + "{" +
+        dcl.vars.map(x => this(x)).mkString("\n") +
+        dcl.methods.map(x => this(x)).mkString("\n") + "}"
 
       case MethodDecl(retType, id, args, vars, stats, retExpr) =>
         "def " + this(id) + "(" + args.map(this(_)).mkString(", ") +") : " + this(retType) + " = { \n" +
