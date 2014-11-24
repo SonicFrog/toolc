@@ -14,103 +14,94 @@ object NameAnalysis extends Pipeline[Program, Program] {
     /**
       * Collects class variables and checks if any is define twice
       **/
-    def collectVariables(cls : ClassDecl) : List[VarDecl] = {
-      def inner(sym : Map[String, VariableSymbol], vars : List[VarDecl], symbolized : List[VarDecl]) :
-          List[VarDecl] = {
+    def collectVariables(cls : ClassDecl) : Map[String, VariableSymbol] = {
+      def inner(sym : Map[String, VariableSymbol], vars : List[VarDecl]) :
+          Map[String, VariableSymbol] = {
         vars match {
-          case Nil => symbolized
+          case Nil => sym
           case x :: xs => sym.get(x.id.value) match {
             case None =>
               val ns =  new VariableSymbol(x.id.value)
               x.setSymbol(ns)
-              val done = symbolized :+ x
-              inner(sym.updated(x.id.value, ns), xs, done)
+              inner(sym.updated(x.id.value, ns), xs)
             case Some(ms) =>
               fatal(ms.name + " declared twice in class " + cls.id.value)
           }
         }
       }
-      inner(Map(), cls.vars, List())
+      inner(Map(), cls.vars)
     }
 
     /**
       * Collects variables declared in the current method and checks if
       * they are defined twice in the current scope
       **/
-    def collectMethodVariables(meth : MethodDecl, ms : MethodSymbol) : List[VarDecl] = {
-      def inner(map : Map[String, VariableSymbol], vars : List[VarDecl], symbolized : List[VarDecl]) :
-          List[VarDecl] = {
+    def collectMethodVariables(meth : MethodDecl, ms : MethodSymbol) : Map[String, VariableSymbol] = {
+      def inner(map : Map[String, VariableSymbol], vars : List[VarDecl]) :
+          Map[String, VariableSymbol] = {
         vars match {
-          case Nil => symbolized
+          case Nil => map
           case x :: xs => map.get(x.id.value) match {
             case None =>
               val ns = new VariableSymbol(x.id.value)
               x.setSymbol(ns)
-              val done = symbolized :+ x
-              inner(map.updated(x.id.value, ns), xs, done)
+              inner(map.updated(x.id.value, ns), xs)
             case Some(vs) =>
               fatal(vs.name + " already declared in method " + ms.name)
           }
         }
       }
-      inner(Map(), meth.vars, List())
+      inner(Map(), meth.vars)
     }
 
-    def collectMethods(cls : ClassDecl, cs : ClassSymbol) : List[MethodDecl] = {
-      def inner(map : Map[String, MethodSymbol], left : List[MethodDecl], symbolized : List[MethodDecl]) :
-          List[MethodDecl] = left match {
-        case Nil => symbolized
+    def collectMethods(cls : ClassDecl, cs : ClassSymbol) : Map[String, MethodSymbol] = {
+      def inner(map : Map[String, MethodSymbol], left : List[MethodDecl]) :
+          Map[String, MethodSymbol] = left match {
+        case Nil => map
         case x :: xs => map.get(x.id.value) match {
           case None =>
             val ns = new MethodSymbol(x.id.value, cs)
             x.setSymbol(ns)
-            val done = symbolized :+ x
-            inner(map.updated(x.id.value, ns), xs, done)
+            inner(map.updated(x.id.value, ns), xs)
           case Some(ms) =>
             fatal(ms.name + " declared twice for class " + cls.id.value)
         }
       }
-      inner(Map(), cls.methods, List())
+      inner(Map(), cls.methods)
     }
 
-    def collectClasses(prg : Program) : List[ClassDecl] = {
-      def inner(map : Map[String, ClassSymbol], cls : List[ClassDecl], symbolized: List[ClassDecl]) : List[ClassDecl] = {
+    def collectClasses(prg : Program) : Map[String, ClassSymbol] = {
+      def inner(map : Map[String, ClassSymbol], cls : List[ClassDecl]) : Map[String, ClassSymbol] = {
         cls match {
-          case Nil => symbolized
+          case Nil => map
           case x :: xs => map.get(x.id.value) match {
             case None =>
               val ns = new ClassSymbol(x.id.value)
               x.setSymbol(ns)
-              val done = symbolized :+ x
-              inner(map.updated(x.id.value, ns), xs, done)
+              inner(map.updated(x.id.value, ns), xs)
             case Some(cs) =>
               fatal(cs.name + " already declared")
           }
         }
       }
-      inner(Map(), prg.classes, List())
+      inner(Map(), prg.classes)
     }
 
     // This is a suggestion:
     // Step 1: Collect symbols in declarations
     // Step 2: Attach symbols to identifiers (except method calls) in method bodies
 
-    val classes = collectClasses(prog)
-    val methods = classes map ( cldcl => collectMethods(cldcl, cldcl.getSymbol))
-    val methodsUpdated = for (mdlist <- methods) yield {
-    	mdlist map { mdcl =>
-    	  val varList = collectMethodVariables(mdcl, mdcl.getSymbol)
-    	  new MethodDecl(mdcl.retType , mdcl.id, mdcl.args, varList, mdcl.stats, mdcl.retExpr)
+    collectClasses(prog)
+    prog.classes map ( cldcl => collectMethods(cldcl, cldcl.getSymbol))
+    for (classe <- prog.classes) {
+    	classe.methods map { mdcl =>
+    	  collectMethodVariables(mdcl, mdcl.getSymbol)
     	}
     }
-    val classVar = classes map (cldcl => collectVariables(cldcl))
-    val classesWithVarSymb = classes zip (methodsUpdated zip (classVar))
-    
-    val classesWithAllSymb = classesWithVarSymb map {case (classe, (methods, classVar)) => new ClassDecl(classe.id, classe.parent, classVar, methods)}
-    val prgm = new Program(prog.main, classesWithAllSymb)
+    val classVar = prog.classes map ( cldcl => collectVariables(cldcl))
 
 
     // Make sure you check for all constraints
-    prgm
+    prog
   }
 }

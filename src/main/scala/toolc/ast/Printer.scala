@@ -19,12 +19,12 @@ object Printer {
         dcl.vars.map(x => this(x)).mkString("\n") +
         dcl.methods.map(x => this(x)).mkString("\n") + "}"
 
-      case MethodDecl(retType, id, args, vars, stats, retExpr) =>
-        "def " + this(id) + "(" + args.map(this(_)).mkString(", ") +") : " + this(retType) + " = { \n" +
-        vars.map(this(_)).mkString("\n") + stats.map(this(_)).mkString("\n") +
-        "return " + this(retExpr) + ";\n}"
+      case dcl : MethodDecl =>
+        "def " + this(dcl.id) + "#" + dcl.getSymbol.id + "(" + dcl.args.map(this(_)).mkString(", ") +") : " + this(dcl.retType) + " = { \n" +
+        dcl.vars.map(this(_)).mkString("\n") + dcl.stats.map(this(_)).mkString("\n") +
+        "return " + this(dcl.retExpr) + ";\n}"
 
-      case VarDecl(tpe, id) => "var " + this(id) + " : " + this(tpe) + ";"
+      case dcl : VarDecl => "var " + this(dcl.id) + "#" + dcl.getSymbol.id + " : " + this(dcl.tpe) + ";"
       case Formal(tpe, id) => this(id) + " : " + this(tpe)
 
       case IntArrayType() => "Int[]"
