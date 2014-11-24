@@ -91,6 +91,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
     // Step 1: Collect symbols in declarations
     // Step 2: Attach symbols to identifiers (except method calls) in method bodies
 
+    prog.main.setSymbol(new ClassSymbol(prog.main.id.value))
     collectClasses(prog)
     prog.classes map ( cldcl => collectMethods(cldcl, cldcl.getSymbol))
     for (classe <- prog.classes) {
@@ -99,6 +100,8 @@ object NameAnalysis extends Pipeline[Program, Program] {
     	}
     }
     val classVar = prog.classes map ( cldcl => collectVariables(cldcl))
+    
+    //prog.main.stats map 
 
 
     // Make sure you check for all constraints
