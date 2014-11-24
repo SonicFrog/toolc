@@ -86,6 +86,57 @@ object NameAnalysis extends Pipeline[Program, Program] {
       }
       inner(Map(), prg.classes)
     }
+    
+    def handleStatTree(st : StatTree, sym : ClassSymbol) : Unit = {
+      st match {
+        case Block(stats) => stats foreach ( stats => handleStatTree(stats, sym))
+      	case If(expr, thn, els) => handleExprTree(expr, sym)
+      		handleStatTree(thn, sym)
+      		els match {
+      			case None =>
+      			case Some(st) => handleStatTree(st, sym)
+      		}
+      	case While(expr, stat) => handleExprTree(expr, sym)
+      		handleStatTree(stat, sym)
+      	case Println(expr) => handleExprTree(expr, sym)
+      	case Assign(id, expr) => handleExprTree(id, sym)
+      		handleExprTree(expr, sym)
+      	case ArrayAssign(id,index,expr) => sym.lookupVar(id.value) match {
+      	  case None => fatal(id.value + " has not been declared")
+      	  case Some(smbl) => id.setSymbol(smbl)
+      	}
+      	handleExprTree(index, sym)
+      	handleExprTree(expr, sym)
+      }
+    }
+    
+    def handleExprTree(et : ExprTree, sym : ClassSymbol) : Unit = {
+      et match {
+        case And(lhs, rhs) =>
+        case Or(lhs, rhs) =>
+        case Plus(lhs, rhs) =>
+        case Minus(lhs, rhs) =>
+        case Times(lhs, rhs) =>
+        case Div(lhs, rhs) =>
+        case LessThan(lhs, rhs) =>
+        case Equals(lhs, rhs) =>
+        case ArrayRead(arr, index) =>
+        case ArrayLength(arr) =>
+        case MethodCall(obj, meth, args) => handleExprTree(obj, sym)
+          handleExprTree(meth, sym)
+          
+          
+        case id : Identifier => sym.lookupVar(id.value) match {
+      	  case None => fatal(id.value + " has not been declared")
+      	  case Some(smbl) => id.setSymbol(smbl)
+      	}
+        case ths : This => ths.setSymbol(sym)
+        case NewIntArray(size) => handleExprTree(size, sym)
+        case New(tpe) => handleExprTree(tpe, sym)
+        case Not(expr) => handleExprTree(expr, sym)
+        case _ => //TODO
+      }
+    }
 
     // This is a suggestion:
     // Step 1: Collect symbols in declarations
@@ -101,7 +152,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
     }
     val classVar = prog.classes map ( cldcl => collectVariables(cldcl))
     
-    //prog.main.stats map 
+    prog.main.stats foreach (stat => handleStatTree(stat, prog.main.getSymbol))
 
 
     // Make sure you check for all constraints
