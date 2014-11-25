@@ -60,7 +60,7 @@ object Symbols {
     var overridden : Option[MethodSymbol] = None
 
     def lookupVar(n: String): Option[VariableSymbol] =
-      members.get(n).orElse(classSymbol.lookupVar(n))
+      members.get(n).orElse(params.get(n).orElse(classSymbol.lookupVar(n)))
   }
 
   class VariableSymbol(val name: String) extends Symbol
