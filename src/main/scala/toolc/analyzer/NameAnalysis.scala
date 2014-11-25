@@ -22,6 +22,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
           case x :: xs => sym.get(x.id.value) match {
             case None =>
               val ns =  new VariableSymbol(x.id.value)
+              ns.setPos(x)
               x.id.setSymbol(ns)
               x.setSymbol(ns)
               inner(sym.updated(x.id.value, ns), xs)
@@ -45,6 +46,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
           case x :: xs => map.get(x.id.value) match {
             case None =>
               val ns = new VariableSymbol(x.id.value)
+              ns.setPos(x)
               x.id.setSymbol(ns)
               x.setSymbol(ns)
               inner(map.updated(x.id.value, ns), xs)
@@ -68,6 +70,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
           case x :: xs => map.get(x.id.value) match {
             case None =>
               val ns = new VariableSymbol(x.id.value)
+              ns.setPos(x)
               x.id.setSymbol(ns)
               x.setSymbol(ns)
               inner(map.updated(x.id.value, ns), xs)
@@ -86,6 +89,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
         case x :: xs => map.get(x.id.value) match {
           case None =>
             val ns = new MethodSymbol(x.id.value, cs)
+            ns.setPos(x)
             x.id.setSymbol(ns)
             x.setSymbol(ns)
             inner(map.updated(x.id.value, ns), xs)
@@ -103,6 +107,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
           case x :: xs => map.get(x.id.value) match {
             case None =>
               val ns = new ClassSymbol(x.id.value)
+              ns.setPos(x)
               x.id.setSymbol(ns)
               x.setSymbol(ns)
               inner(map.updated(x.id.value, ns), xs)
@@ -114,6 +119,33 @@ object NameAnalysis extends Pipeline[Program, Program] {
       inner(Map(), prg.classes)
     }
     
+    def heritageGodMethod(scope : GlobalScope) : Unit = {
+      def inner(dontwant : ClassSymbol, start : ClassSymbol, youShallNotName : Map[String, VariableSymbol]) : Unit = {
+        start.parent match {
+          case None => 
+          case Some(cs) => 
+            if (cs == dontwant) error("Cycle in inheritance graph", cs)
+            else {
+              val parentVars = cs.members
+              val intersect = youShallNotName.keys.toList intersect parentVars.keys.toList
+              intersect foreach (overridingField => error("Field " + overridingField + " overrides parent's field", youShallNotName(overridingField) ))
+              inner(dontwant, cs, parentVars ++: youShallNotName)
+            }
+        }
+      }
+      scope.classes.values.foreach { cldecl =>
+        inner(cldecl, cldecl, cldecl.members)
+      }
+    }
+    
+    def checkShadowing (method : MethodSymbol) : Unit = {
+      val args = method.params.keys toSet
+      val vars = method.members.keys toSet
+      
+      val intersect = args intersect vars
+      intersect foreach (doubleDamage => error( "Variable '" + doubleDamage + "' shadows a method parameter in method " + method.name, method.members(doubleDamage)))
+    }
+    
     // This is a suggestion:
     // Step 1: Collect symbols in declarations
     // Step 2: Attach symbols to identifiers (except method calls) in method bodies
@@ -121,16 +153,15 @@ object NameAnalysis extends Pipeline[Program, Program] {
     val globalScope = new GlobalScope
     
     val mainSymb = new ClassSymbol(prog.main.id.value)
+    mainSymb.setPos(prog.main.id)
     prog.main.id.setSymbol(mainSymb)
     globalScope.mainClass  = mainSymb
     
     val classes = collectClasses(prog)
     globalScope.classes = classes
    
-    val methods = prog.classes flatMap ( cldcl => {
-      val map = collectMethods(cldcl, cldcl.getSymbol)
-      cldcl.getSymbol.methods = map
-      map values
+    prog.classes foreach ( cldcl => {
+      cldcl.getSymbol.methods = collectMethods(cldcl, cldcl.getSymbol)
       })
     val classVar = prog.classes flatMap ( cldcl => {
       val map = collectVariables(cldcl)
@@ -150,9 +181,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
     	}
     }) flatten
     
-    
-    val listSymClasses = (classes values) toList
-    var allSymbols = (listSymClasses ::: methods ::: methodVar ::: classVar) toSet
+    var allSymbols = (methodVar ::: classVar) toSet
     
     prog.main.stats foreach {
       handleStatTree(_, null)
@@ -165,6 +194,10 @@ object NameAnalysis extends Pipeline[Program, Program] {
     )
     
     prog.classes foreach ( cldcl => {
+      cldcl.parent match {
+        case None =>
+        case Some(superType) => attachSymbolToType(superType)
+      }
       cldcl.vars foreach (vrdcl => attachSymbolToType(vrdcl.tpe))
       cldcl.methods foreach { meth => meth.vars foreach (vrdcl => attachSymbolToType(vrdcl.tpe))
       	attachSymbolToType(meth.retType)
@@ -177,6 +210,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
       tpe match {
         case id : Identifier =>
         	val ns = globalScope.lookupClass(id.value).getOrElse(fatal(id.value + " undeclared", id))
+        	ns.setPos(id)
         	id.setSymbol(ns)
         case _ => //ain't no symbols to attach
       }
@@ -248,9 +282,17 @@ object NameAnalysis extends Pipeline[Program, Program] {
       }
     }
 
-
-
-    // Make sure you check for all constraints
+     // Checking all other constraints
+    
+    // cyclic heritage check & field override check
+    heritageGodMethod(globalScope) 
+    
+    // shadowing check
+    classes.values foreach (_.methods.values foreach (checkShadowing(_)))
+    
+    // unused resource check
+    allSymbols foreach (unused => warning("Unused ressource " + unused.name, unused))
+    
     prog
   }
 }
