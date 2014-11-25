@@ -106,6 +106,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
           case Nil => map
           case x :: xs => map.get(x.id.value) match {
             case None =>
+              if(x.id.value == prog.main.id.value) fatal("Class "+ x.id.value +" has the same name as the main object")
               val ns = new ClassSymbol(x.id.value)
               ns.setPos(x)
               x.id.setSymbol(ns)
