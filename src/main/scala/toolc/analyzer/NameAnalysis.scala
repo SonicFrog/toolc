@@ -160,13 +160,16 @@ object NameAnalysis extends Pipeline[Program, Program] {
     val classes = collectClasses(prog)
     globalScope.classes = classes
    
-    prog.classes foreach ( cldcl => {
-      cldcl.getSymbol.methods = collectMethods(cldcl, cldcl.getSymbol)
-      })
+    val methodList = prog.classes flatMap ( cldcl => {
+      val map = collectMethods(cldcl, cldcl.getSymbol)
+      cldcl.getSymbol.methods = map
+      
+      map values
+    })
     val classVar = prog.classes flatMap ( cldcl => {
       val map = collectVariables(cldcl)
       cldcl.getSymbol.members = map
-      cldcl.getSymbol.parent  = cldcl.parent.flatMap(x => Some(classes(x.value)))
+      cldcl.getSymbol.parent  = cldcl.parent.flatMap(x => classes.get(x.value))
       map values
       })
     
@@ -180,6 +183,10 @@ object NameAnalysis extends Pipeline[Program, Program] {
     		}
     	}
     }) flatten
+    
+    methodList foreach {
+      meth => meth.overridden = meth.classSymbol.parent.flatMap(x => x.lookupMethod(meth.name))
+    }
     
     var allSymbols = (methodVar ::: classVar) toSet
     
@@ -196,7 +203,10 @@ object NameAnalysis extends Pipeline[Program, Program] {
     prog.classes foreach ( cldcl => {
       cldcl.parent match {
         case None =>
-        case Some(superType) => attachSymbolToType(superType)
+        case Some(superType) => if (superType.value == prog.main.id.value) {
+          fatal("Cannot inherit the main object", superType)
+        }
+        attachSymbolToType(superType)
       }
       cldcl.vars foreach (vrdcl => attachSymbolToType(vrdcl.tpe))
       cldcl.methods foreach { meth => meth.vars foreach (vrdcl => attachSymbolToType(vrdcl.tpe))
@@ -286,6 +296,17 @@ object NameAnalysis extends Pipeline[Program, Program] {
     
     // cyclic heritage check & field override check
     heritageGodMethod(globalScope) 
+    
+    // Method override check
+    methodList foreach {
+      meth => meth.overridden match {
+        case None =>
+        case Some(parentMeth) =>
+          if(meth.params.size != parentMeth.params.size) {
+            error("Overriding method " + meth.name + " has not the right amount of parameters", meth)
+          }
+      }
+    }
     
     // shadowing check
     classes.values foreach (_.methods.values foreach (checkShadowing(_)))
