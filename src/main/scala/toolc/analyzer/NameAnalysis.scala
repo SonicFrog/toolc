@@ -12,18 +12,17 @@ object NameAnalysis extends Pipeline[Program, Program] {
     
     val globalScope = new GlobalScope
 
-    def setVarType(vs : VariableSymbol, x : VarDecl) : VariableSymbol = {
-      x.tpe match {
-        case _ : IntType => vs.setType(Types.TInt)
-        case _ : BooleanType => vs.setType(Types.TBool)
-        case _ : IntArrayType => vs.setType(Types.TIntArray)
-        case _ : StringType => vs.setType(Types.TString)
-        case id : Identifier => vs.setType(globalScope.lookupClass(id.value) match { 
+    def fetchType(tpe : TypeTree) : Types.Type = {
+      tpe match {
+        case _ : IntType => Types.TInt
+        case _ : BooleanType => Types.TBool
+        case _ : IntArrayType => Types.TIntArray
+        case _ : StringType => Types.TString
+        case id : Identifier => globalScope.lookupClass(id.value) match { 
           case None => Types.TError
           case Some(cs) => new Types.TObject(cs)
-          })
+          }
       }
-      vs
     }
     
     
@@ -37,7 +36,8 @@ object NameAnalysis extends Pipeline[Program, Program] {
           case Nil => sym
           case x :: xs => sym.get(x.id.value) match {
             case None =>
-              val ns = setVarType(new VariableSymbol(x.id.value), x)
+              val ns = new VariableSymbol(x.id.value)
+              ns.setType(fetchType(x.tpe))
               ns.setPos(x)
               x.id.setSymbol(ns)
               x.setSymbol(ns)
@@ -62,6 +62,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
           case x :: xs => map.get(x.id.value) match {
             case None =>
               val ns = new VariableSymbol(x.id.value)
+              ns.setType(fetchType(x.tpe))
               ns.setPos(x)
               x.id.setSymbol(ns)
               x.setSymbol(ns)
@@ -86,6 +87,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
           case x :: xs => map.get(x.id.value) match {
             case None =>
               val ns = new VariableSymbol(x.id.value)
+              ns.setType(fetchType(x.tpe))
               ns.setPos(x)
               x.id.setSymbol(ns)
               x.setSymbol(ns)
@@ -105,6 +107,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
         case x :: xs => map.get(x.id.value) match {
           case None =>
             val ns = new MethodSymbol(x.id.value, cs)
+            ns.setType(fetchType(x.retType))
             ns.setPos(x)
             x.id.setSymbol(ns)
             x.setSymbol(ns)
