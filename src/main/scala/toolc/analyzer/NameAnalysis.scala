@@ -9,8 +9,24 @@ object NameAnalysis extends Pipeline[Program, Program] {
 
   def run(ctx: Context)(prog: Program): Program = {
     import ctx.reporter._
+    
+    val globalScope = new GlobalScope
 
-
+    def setVarType(vs : VariableSymbol, x : VarDecl) : VariableSymbol = {
+      x.tpe match {
+        case _ : IntType => vs.setType(Types.TInt)
+        case _ : BooleanType => vs.setType(Types.TBool)
+        case _ : IntArrayType => vs.setType(Types.TIntArray)
+        case _ : StringType => vs.setType(Types.TString)
+        case id : Identifier => vs.setType(globalScope.lookupClass(id.value) match { 
+          case None => Types.TError
+          case Some(cs) => new Types.TObject(cs)
+          })
+      }
+      vs
+    }
+    
+    
     /**
       * Collects class variables and checks if any is define twice
       **/
@@ -21,7 +37,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
           case Nil => sym
           case x :: xs => sym.get(x.id.value) match {
             case None =>
-              val ns =  new VariableSymbol(x.id.value)
+              val ns = setVarType(new VariableSymbol(x.id.value), x)
               ns.setPos(x)
               x.id.setSymbol(ns)
               x.setSymbol(ns)
@@ -151,7 +167,6 @@ object NameAnalysis extends Pipeline[Program, Program] {
     // Step 1: Collect symbols in declarations
     // Step 2: Attach symbols to identifiers (except method calls) in method bodies
 
-    val globalScope = new GlobalScope
     
     val mainSymb = new ClassSymbol(prog.main.id.value)
     mainSymb.setPos(prog.main.id)

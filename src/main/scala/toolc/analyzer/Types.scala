@@ -34,6 +34,30 @@ object Types {
     }
     override def toString = "int"
   }
+  
+  case object TBool extends Type {
+    override def isSubTypeOf(tpe: Type): Boolean = tpe match {
+      case TBool => true
+      case _ => false
+    }
+    override def toString = "Bool"
+  }
+  
+  case object TIntArray extends Type {
+    override def isSubTypeOf(tpe: Type): Boolean = tpe match {
+      case TIntArray => true
+      case _ => false
+    }
+    override def toString = "Int[]"
+  }
+  
+  case object TString extends Type {
+    override def isSubTypeOf(tpe: Type): Boolean = tpe match {
+      case TString => true
+      case _ => false
+    }
+    override def toString = "String"
+  }
 
   // TODO: Complete by creating necessary types
 

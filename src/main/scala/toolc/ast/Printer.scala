@@ -58,7 +58,7 @@ object Printer {
 
       case True() => "true"
       case False() => "false"
-      case id : Identifier => id.value + "#" + id.getSymbol.id  
+      case id : Identifier => id.value + "#" + id.getSymbol.id + "/" + id.getType  
       case ths : This => "this#" + ths.getSymbol.id 
       case NewIntArray(size) => "new Int["+ this(size) +"]"
       case New(tpe) => "new " + this(tpe) + "()"
