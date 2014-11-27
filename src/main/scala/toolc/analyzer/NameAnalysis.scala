@@ -192,6 +192,8 @@ object NameAnalysis extends Pipeline[Program, Program] {
       map values
       })
     
+    classes.values foreach { cldcl => cldcl.setType(new Types.TObject(cldcl))}
+    
     val methodVar = (for (classe <- prog.classes) yield {
     	classe.methods flatMap { mdcl => {
     		val mapMeth = collectMethodVariables(mdcl, mdcl.getSymbol)
