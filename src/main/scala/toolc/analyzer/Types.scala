@@ -62,7 +62,13 @@ object Types {
   // TODO: Complete by creating necessary types
 
   case class TObject(classSymbol: ClassSymbol) extends Type {
-    override def isSubTypeOf(tpe: Type): Boolean = ???
+    override def isSubTypeOf(tpe: Type): Boolean = tpe match {
+      case TObject(cs) => cs == classSymbol || (classSymbol.parent match {
+        case Some(parent) => parent.getType.isSubTypeOf(cs.getType)
+        case _ => false
+      })
+      case _  => false
+    }
     override def toString = classSymbol.name
   }
 
