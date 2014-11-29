@@ -14,7 +14,72 @@ object TypeChecking extends Pipeline[Program, Program] {
     import ctx.reporter._
 
     def tcExpr(expr: ExprTree, expected: Type*): Type = {
-      val tpe: Type = ??? // TODO: Compute type for each kind of expression
+      val tpe: Type = expr match {
+        case And(lhs, rhs) => tcExpr(lhs, TBool); tcExpr(rhs, TBool)
+        case Or(lhs, rhs) => tcExpr(lhs, TBool); tcExpr(rhs, TBool)
+
+        case Plus(lhs, rhs) => {
+          val t1 = tcExpr(lhs, TString, TInt)
+
+          t1 match {
+            case TString => tcExpr(rhs, TInt, TString); TString
+            case TInt => tcExpr(rhs, TInt, TString)
+            case _ => TError
+          }
+        }
+
+        case Minus(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt)
+        case Times(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt)
+        case Div(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt)
+        case LessThan(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt)
+
+        case Equals(lhs, rhs) => {
+          val t1 = tcExpr(lhs, TAnyObject, TInt, TString, TBool)
+
+          t1 match {
+            case TAnyObject => tcExpr(rhs, TAnyObject)
+            case TInt => tcExpr(rhs, TInt)
+            case TString => tcExpr(rhs, TString)
+            case TBool => tcExpr(lhs, TBool)
+            case _ => TError
+          }
+        }
+
+        case ArrayRead(arr, index) => tcExpr(arr, TIntArray); tcExpr(index, TInt)
+        case ArrayLength(arr) => tcExpr(arr, TIntArray)
+
+        case MethodCall(obj, meth, args) => {
+          val t = tcExpr(obj, TAnyObject)
+
+          t match {
+            case TObject(cs) =>
+              cs.lookupMethod(meth.value) match {
+                case None => {
+                  error("Method " + meth.value + " not found in type " + cs.name)
+                  TError
+                }
+                case Some(method) => {
+                  if (args.length != method.params.size) {
+                    error("Argument count mismatch")
+                    TError
+                  }
+                  else method.getType
+                }
+              }
+            case _ => t //The error is already signaled by recursive call to tcExpr
+          }
+        }
+
+        case IntLit(value) => TInt
+        case StringLit(value) => TString
+        case True() | False() => TBool
+        case id : Identifier => id.getType
+        case ths: This => ths.getType
+        case New(tpe) => tpe.getType
+        case Not(expr) => tcExpr(expr, TBool)
+        case NewIntArray(size) => tcExpr(size, TInt)
+      }
+
 
 
       // Check result and return a valid type in case of error
@@ -31,7 +96,15 @@ object TypeChecking extends Pipeline[Program, Program] {
     }
 
     def tcStat(stat: StatTree): Unit = {
-      ???
+      stat match {
+        case Block(stats) => stats.foreach (tcStat(_))
+        case If(cond, thn, els) => tcExpr(cond, TBool)
+        case While(cond, stat) => tcExpr(cond, TBool); tcStat(stat)
+        case Println(expr) => tcExpr(expr, TString, TInt, TBool)
+        case Assign(id, expr) => tcExpr(expr, id.getType)
+        case ArrayAssign(id, index, expr) =>
+          tcExpr(id, TIntArray); tcExpr(index, TInt); tcExpr(expr, TInt)
+      }
     }
 
     prog
