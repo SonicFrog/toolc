@@ -40,7 +40,8 @@ object TypeChecking extends Pipeline[Program, Program] {
             case TAnyObject => tcExpr(rhs, TAnyObject)
             case TInt => tcExpr(rhs, TInt)
             case TString => tcExpr(rhs, TString)
-            case TBool => tcExpr(lhs, TBool)
+            case TBool => tcExpr(rhs, TBool)
+            case TIntArray => tcExpr(rhs, TIntArray)
             case _ => TError
           }
         }
