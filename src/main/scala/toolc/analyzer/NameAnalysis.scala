@@ -9,7 +9,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
 
   def run(ctx: Context)(prog: Program): Program = {
     import ctx.reporter._
-    
+
     val globalScope = new GlobalScope
 
     def fetchType(tpe : TypeTree) : Types.Type = {
@@ -18,14 +18,14 @@ object NameAnalysis extends Pipeline[Program, Program] {
         case _ : BooleanType => Types.TBool
         case _ : IntArrayType => Types.TIntArray
         case _ : StringType => Types.TString
-        case id : Identifier => globalScope.lookupClass(id.value) match { 
+        case id : Identifier => globalScope.lookupClass(id.value) match {
           case None => Types.TError
           case Some(cs) => new Types.TObject(cs)
           }
       }
     }
-    
-    
+
+
     /**
       * Collects class variables and checks if any is define twice
       **/
@@ -74,7 +74,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
       }
       inner(Map(), meth.vars)
     }
-    
+
     /**
       * Collects variables declared in the current method and checks if
       * they are defined twice in the current scope
@@ -138,12 +138,12 @@ object NameAnalysis extends Pipeline[Program, Program] {
       }
       inner(Map(), prg.classes)
     }
-    
+
     def heritageGodMethod(scope : GlobalScope) : Unit = {
       def inner(dontwant : ClassSymbol, start : ClassSymbol, youShallNotName : Map[String, VariableSymbol]) : Unit = {
         start.parent match {
-          case None => 
-          case Some(cs) => 
+          case None =>
+          case Some(cs) =>
             if (cs == dontwant) error("Cycle in inheritance graph", cs)
             else {
               val parentVars = cs.members
@@ -157,32 +157,32 @@ object NameAnalysis extends Pipeline[Program, Program] {
         inner(cldecl, cldecl, cldecl.members)
       }
     }
-    
+
     def checkShadowing (method : MethodSymbol) : Unit = {
       val args = method.params.keys toSet
       val vars = method.members.keys toSet
-      
+
       val intersect = args intersect vars
       intersect foreach (doubleDamage => error( "Variable '" + doubleDamage + "' shadows a method parameter in method " + method.name, method.members(doubleDamage)))
     }
-    
+
     // This is a suggestion:
     // Step 1: Collect symbols in declarations
     // Step 2: Attach symbols to identifiers (except method calls) in method bodies
 
-    
+
     val mainSymb = new ClassSymbol(prog.main.id.value)
     mainSymb.setPos(prog.main.id)
     prog.main.id.setSymbol(mainSymb)
     globalScope.mainClass  = mainSymb
-    
+
     val classes = collectClasses(prog)
     globalScope.classes = classes
-   
+
     val methodList = prog.classes flatMap ( cldcl => {
       val map = collectMethods(cldcl, cldcl.getSymbol)
       cldcl.getSymbol.methods = map
-      
+
       map values
     })
     val classVar = prog.classes flatMap ( cldcl => {
@@ -191,36 +191,36 @@ object NameAnalysis extends Pipeline[Program, Program] {
       cldcl.getSymbol.parent  = cldcl.parent.flatMap(x => classes.get(x.value))
       map values
       })
-    
+
     classes.values foreach { cldcl => cldcl.setType(new Types.TObject(cldcl))}
-    
+
     val methodVar = (for (classe <- prog.classes) yield {
     	classe.methods flatMap { mdcl => {
     		val mapMeth = collectMethodVariables(mdcl, mdcl.getSymbol)
-    		val mapParam = collectMethodParam(mdcl, mdcl.getSymbol) 
+    		val mapParam = collectMethodParam(mdcl, mdcl.getSymbol)
     		mdcl.getSymbol.params = mapParam
     		mdcl.getSymbol.members = mapMeth
     		mapMeth ++: mapParam values
     		}
     	}
     }) flatten
-    
+
     methodList foreach {
       meth => meth.overridden = meth.classSymbol.parent.flatMap(x => x.lookupMethod(meth.name))
     }
-    
+
     var allSymbols = (methodVar ::: classVar) toSet
-    
+
     prog.main.stats foreach {
       handleStatTree(_, null)
     }
-    
+
     prog.classes foreach (
       _.methods foreach (
           meth => meth.stats foreach (handleStatTree(_, meth.getSymbol))
           )
     )
-    
+
     prog.classes foreach ( cldcl => {
       cldcl.parent match {
         case None =>
@@ -236,7 +236,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
       	meth.args foreach (arg => attachSymbolToType(arg.tpe))
       }
       })
-    
+
    def attachSymbolToType(tpe : TypeTree) {
       tpe match {
         case id : Identifier =>
@@ -246,8 +246,8 @@ object NameAnalysis extends Pipeline[Program, Program] {
         case _ => //ain't no symbols to attach
       }
     }
-    
-    
+
+
    def attachVarSymbol(id: Identifier, sym: MethodSymbol) {
       sym.lookupVar(id.value) match {
       	  case None => fatal(id.value + " has not been declared in " + sym.name, id)
@@ -257,7 +257,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
       	  }
       	}
     }
-    
+
      def handleStatTree(st : StatTree, sym : MethodSymbol) : Unit = {
       st match {
         case Block(stats) => stats foreach ( stats => handleStatTree(stats, sym))
@@ -277,7 +277,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
       	handleExprTree(expr, sym)
       }
     }
-    
+
     def handleExprTree(et : ExprTree, sym : MethodSymbol) : Unit = {
       et match {
         case And(lhs, rhs) => handleExprTree(lhs, sym)
@@ -302,10 +302,13 @@ object NameAnalysis extends Pipeline[Program, Program] {
         case MethodCall(obj, meth, args) => handleExprTree(obj, sym)
           // we do nothing with the method id.
           args foreach (handleExprTree(_, sym))
-          
-          
+
+
         case id : Identifier => attachVarSymbol(id, sym)
-        case ths : This => ths.setSymbol(sym.classSymbol)
+        case ths : This => {
+          ths.setSymbol(sym.classSymbol)
+        }
+
         case NewIntArray(size) => handleExprTree(size, sym)
         case New(tpe) => tpe.setSymbol(globalScope.lookupClass(tpe.value).getOrElse(fatal(tpe.value + " not declared", tpe)))
         case Not(expr) => handleExprTree(expr, sym)
@@ -314,10 +317,10 @@ object NameAnalysis extends Pipeline[Program, Program] {
     }
 
      // Checking all other constraints
-    
+
     // cyclic heritage check & field override check
-    heritageGodMethod(globalScope) 
-    
+    heritageGodMethod(globalScope)
+
     // Method override check
     methodList foreach {
       meth => meth.overridden match {
@@ -328,13 +331,13 @@ object NameAnalysis extends Pipeline[Program, Program] {
           }
       }
     }
-    
+
     // shadowing check
     classes.values foreach (_.methods.values foreach (checkShadowing(_)))
-    
+
     // unused resource check
     allSymbols foreach (unused => warning("Unused ressource " + unused.name, unused))
-    
+
     prog
   }
 }

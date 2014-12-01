@@ -31,23 +31,25 @@ object TypeChecking extends Pipeline[Program, Program] {
         case Minus(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt)
         case Times(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt)
         case Div(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt)
-        case LessThan(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt)
 
+        case LessThan(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt); TBool
         case Equals(lhs, rhs) => {
           val t1 = tcExpr(lhs, TAnyObject, TInt, TString, TBool)
 
           t1 match {
-            case TAnyObject => tcExpr(rhs, TAnyObject)
+            case TObject(cs) => tcExpr(rhs, TAnyObject)
             case TInt => tcExpr(rhs, TInt)
             case TString => tcExpr(rhs, TString)
             case TBool => tcExpr(rhs, TBool)
             case TIntArray => tcExpr(rhs, TIntArray)
             case _ => TError
           }
+
+          TBool
         }
 
         case ArrayRead(arr, index) => tcExpr(arr, TIntArray); tcExpr(index, TInt)
-        case ArrayLength(arr) => tcExpr(arr, TIntArray)
+        case ArrayLength(arr) => tcExpr(arr, TIntArray); TInt
 
         case MethodCall(obj, meth, args) => {
           val t = tcExpr(obj, TAnyObject)
@@ -61,7 +63,8 @@ object TypeChecking extends Pipeline[Program, Program] {
                 }
                 case Some(method) => {
                   if (args.length != method.params.size) {
-                    error("Argument count mismatch")
+                    error("Can't call method " + method.name + " from " +
+                      cs.name + " with " + args.length + " parameters")
                     TError
                   }
                   else method.getType
@@ -78,7 +81,7 @@ object TypeChecking extends Pipeline[Program, Program] {
         case ths: This => ths.getType
         case New(tpe) => tpe.getType
         case Not(expr) => tcExpr(expr, TBool)
-        case NewIntArray(size) => tcExpr(size, TInt)
+        case NewIntArray(size) => tcExpr(size, TInt); TIntArray
       }
 
 
@@ -99,12 +102,27 @@ object TypeChecking extends Pipeline[Program, Program] {
     def tcStat(stat: StatTree): Unit = {
       stat match {
         case Block(stats) => stats.foreach (tcStat(_))
-        case If(cond, thn, els) => tcExpr(cond, TBool)
+        case If(cond, thn, els) => tcExpr(cond, TBool); tcStat(thn); els.foreach(tcStat(_))
         case While(cond, stat) => tcExpr(cond, TBool); tcStat(stat)
         case Println(expr) => tcExpr(expr, TString, TInt, TBool)
         case Assign(id, expr) => tcExpr(expr, id.getType)
         case ArrayAssign(id, index, expr) =>
           tcExpr(id, TIntArray); tcExpr(index, TInt); tcExpr(expr, TInt)
+      }
+    }
+
+    // Checking types of return stats
+    prog.classes.foreach {
+      cl => cl.methods foreach {
+        meth => tcExpr(meth.retExpr, meth.getSymbol.getType)
+      }
+    }
+
+    prog.main.stats.foreach(tcStat(_))
+
+    prog.classes.foreach {
+      x => x.methods.foreach {
+        y => y.stats.foreach(tcStat(_))
       }
     }
 

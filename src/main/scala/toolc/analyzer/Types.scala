@@ -32,9 +32,9 @@ object Types {
       case TInt => true
       case _ => false
     }
-    override def toString = "int"
+    override def toString = "Int"
   }
-  
+
   case object TBool extends Type {
     override def isSubTypeOf(tpe: Type): Boolean = tpe match {
       case TBool => true
@@ -42,7 +42,7 @@ object Types {
     }
     override def toString = "Bool"
   }
-  
+
   case object TIntArray extends Type {
     override def isSubTypeOf(tpe: Type): Boolean = tpe match {
       case TIntArray => true
@@ -50,7 +50,7 @@ object Types {
     }
     override def toString = "Int[]"
   }
-  
+
   case object TString extends Type {
     override def isSubTypeOf(tpe: Type): Boolean = tpe match {
       case TString => true
@@ -67,6 +67,7 @@ object Types {
         case Some(parent) => parent.getType.isSubTypeOf(cs.getType)
         case _ => false
       })
+      case TAnyObject => true
       case _  => false
     }
     override def toString = classSymbol.name
