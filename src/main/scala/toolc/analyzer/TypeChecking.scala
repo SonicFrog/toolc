@@ -67,7 +67,10 @@ object TypeChecking extends Pipeline[Program, Program] {
                       cs.name + " with " + args.length + " parameters")
                     TError
                   }
-                  else method.getType
+                  else {
+                    meth.setSymbol(method)
+                    method.getType
+                  }
                 }
               }
             case _ => t //The error is already signaled by recursive call to tcExpr

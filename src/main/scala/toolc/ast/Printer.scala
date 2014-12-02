@@ -52,7 +52,7 @@ object Printer {
       case ArrayRead(arr, index) => this(arr) + "[" + this(index) + "]"
       case ArrayLength(array) => this(array) + ".length"
 
-      case MethodCall(obj, meth, args) => this(obj) + "." + meth.value + "#??(" +
+      case MethodCall(obj, meth, args) => this(obj) + "." + this(meth) +"(" +
         args.map(x => this(x)).mkString(",") + ")"
 
       case IntLit(value) => value.toString
