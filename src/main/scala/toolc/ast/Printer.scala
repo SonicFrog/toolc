@@ -51,14 +51,16 @@ object Printer {
       case Equals(lhs, rhs) => "(" + this(lhs) + " == " + this(rhs) + ")"
       case ArrayRead(arr, index) => this(arr) + "[" + this(index) + "]"
       case ArrayLength(array) => this(array) + ".length"
-      case MethodCall(obj, meth, args) => this(obj) + "." + meth.value + "#??("
+
+      case MethodCall(obj, meth, args) => this(obj) + "." + meth.value + "#??(" +
         args.map(x => this(x)).mkString(",") + ")"
+
       case IntLit(value) => value.toString
       case StringLit(value) => '"' + value + '"'
 
       case True() => "true"
       case False() => "false"
-      case id : Identifier => id.value + "#" + id.getSymbol.id + "/" + id.getType  
+      case id : Identifier => id.value + "#" + id.getSymbol.id + "/" + id.getType
       case ths : This => "this#" + ths.getSymbol.id  + "/" + ths.getType
       case NewIntArray(size) => "new Int["+ this(size) +"]"
       case New(tpe) => "new " + this(tpe) + "()"
