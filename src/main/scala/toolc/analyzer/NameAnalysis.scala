@@ -127,6 +127,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
             case None =>
               if(x.id.value == prog.main.id.value) fatal("Class "+ x.id.value +" has the same name as the main object")
               val ns = new ClassSymbol(x.id.value)
+              ns.setType(fetchType(x.id));
               ns.setPos(x)
               x.id.setSymbol(ns)
               x.setSymbol(ns)

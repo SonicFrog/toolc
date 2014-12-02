@@ -49,7 +49,9 @@ object Trees {
   case class Identifier(value: String) extends TypeTree with ExprTree with Symbolic[Symbol] {
     override def getType = getSymbol.getType
   }
-  case class This() extends ExprTree with Symbolic[ClassSymbol]
+  case class This() extends ExprTree with Symbolic[ClassSymbol] {
+    override def getType = getSymbol.getType
+  }
   case class NewIntArray(size: ExprTree) extends ExprTree
   case class New(tpe: Identifier) extends ExprTree
   case class Not(expr: ExprTree) extends ExprTree
