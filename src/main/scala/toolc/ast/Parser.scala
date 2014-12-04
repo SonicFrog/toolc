@@ -138,7 +138,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       while (currentToken.kind == AND) {
         val pos = currentToken
         readToken
-        val rhs = parseEquals
+        val rhs = parseLessThan
 
         if (lhs == null || rhs == null) {
           fatal("&& is binary operator")
@@ -155,7 +155,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       while (currentToken.kind == LESSTHAN) {
         val pos = currentToken
         readToken
-        val rhs = parsePlusMinus
+        val rhs = parseEquals
 
         if (rhs == null || lhs == null) {
           fatal("< is a binary operator")
@@ -173,7 +173,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       while (currentToken.kind == EQUALS) {
         val pos = currentToken
         readToken
-        val rhs = parseLessThan
+        val rhs = parsePlusMinus
 
         if (rhs == null || lhs == null) {
           fatal("== is a binary operator")
