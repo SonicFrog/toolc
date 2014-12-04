@@ -79,11 +79,11 @@ object NameAnalysis extends Pipeline[Program, Program] {
       * Collects variables declared in the current method and checks if
       * they are defined twice in the current scope
       **/
-    def collectMethodParam(meth : MethodDecl, ms : MethodSymbol) : Map[String, VariableSymbol] = {
+    def collectMethodParam(meth : MethodDecl, ms : MethodSymbol) : (Map[String, VariableSymbol], List[VariableSymbol]) = {
       def inner(map : Map[String, VariableSymbol], args : List[Formal]) :
-          Map[String, VariableSymbol] = {
+          (Map[String, VariableSymbol], List[Formal]) = {
         args match {
-          case Nil => map
+          case Nil => (map, args)
           case x :: xs => map.get(x.id.value) match {
             case None =>
               val ns = new VariableSymbol(x.id.value)
@@ -97,7 +97,8 @@ object NameAnalysis extends Pipeline[Program, Program] {
           }
         }
       }
-      inner(Map(), meth.args)
+      val paramTuple = inner(Map(), meth.args)
+      (paramTuple._1, paramTuple._2  map ( u => u.getSymbol))
     }
 
     def collectMethods(cls : ClassDecl, cs : ClassSymbol) : Map[String, MethodSymbol] = {
@@ -198,10 +199,11 @@ object NameAnalysis extends Pipeline[Program, Program] {
     val methodVar = (for (classe <- prog.classes) yield {
     	classe.methods flatMap { mdcl => {
     		val mapMeth = collectMethodVariables(mdcl, mdcl.getSymbol)
-    		val mapParam = collectMethodParam(mdcl, mdcl.getSymbol) 
-    		mdcl.getSymbol.params = mapParam
+    		val paramsTuple = collectMethodParam(mdcl, mdcl.getSymbol) 
+    		mdcl.getSymbol.params = paramsTuple._1
+    		mdcl.getSymbol.argList = paramsTuple._2
     		mdcl.getSymbol.members = mapMeth
-    		mapMeth ++: mapParam values
+    		(mapMeth ++: paramsTuple._1).values
     		}
     	}
     }) flatten
