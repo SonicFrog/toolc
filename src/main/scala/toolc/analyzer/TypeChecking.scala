@@ -118,7 +118,7 @@ object TypeChecking extends Pipeline[Program, Program] {
       cl => cl.methods.foreach {
         meth => meth.getSymbol.overridden match {
           case None =>
-          case Some(over) => over.params.values.zip(meth.getSymbol.params.values).foreach {
+          case Some(over) => over.argList.zip(meth.getSymbol.argList).foreach {
             x => if (x._1.getType != x._2.getType) error("Type mismatch in overriding method " + meth.id.value, meth)
           }
         }
