@@ -150,9 +150,9 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     }
 
     def parseLessThan : ExprTree = {
-      val lhs = parseEquals
+      var lhs = parseEquals
 
-      if (currentToken.kind == LESSTHAN) {
+      while (currentToken.kind == LESSTHAN) {
         val pos = currentToken
         readToken
         val rhs = parsePlusMinus
@@ -161,8 +161,10 @@ object Parser extends Pipeline[Iterator[Token], Program] {
           fatal("< is a binary operator")
         }
 
-        new LessThan(lhs, rhs).setPos(pos)
-      } else lhs
+        lhs = LessThan(lhs, rhs).setPos(pos)
+      }
+
+      lhs
     }
 
     def parseEquals : ExprTree = {
@@ -227,7 +229,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     def parseBang : ExprTree = {
       if (currentToken.kind == BANG) {
         readToken
-        new Not(parseBracket).setPos(currentToken)
+        new Not(parseDot).setPos(currentToken)
       } else parseDot
     }
 

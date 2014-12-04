@@ -9,7 +9,7 @@ import utils._
 
 object TypeChecking extends Pipeline[Program, Program] {
   /** Typechecking does not produce a value, but has the side effect of
-   * attaching types to trees and potentially outputting error messages. */
+    * attaching types to trees and potentially outputting error messages. */
   def run(ctx: Context)(prog: Program): Program = {
     import ctx.reporter._
 
@@ -91,13 +91,13 @@ object TypeChecking extends Pipeline[Program, Program] {
 
       // Check result and return a valid type in case of error
       if(expected.isEmpty) {
-          tpe
+        tpe
       } else {
         if(!expected.exists(e => tpe.isSubTypeOf(e))) {
-            error("Type error: Expected: " + expected.toList.mkString(" or ") + ", found: " + tpe, expr)
-            expected.head
+          error("Type error: Expected: " + expected.toList.mkString(" or ") + ", found: " + tpe, expr)
+          expected.head
         } else {
-            tpe
+          tpe
         }
       }
     }
@@ -111,6 +111,17 @@ object TypeChecking extends Pipeline[Program, Program] {
         case Assign(id, expr) => tcExpr(expr, id.getType)
         case ArrayAssign(id, index, expr) =>
           tcExpr(id, TIntArray); tcExpr(index, TInt); tcExpr(expr, TInt)
+      }
+    }
+
+    prog.classes.foreach {
+      cl => cl.methods.foreach {
+        meth => meth.getSymbol.overridden match {
+          case None =>
+          case Some(over) => over.params.values.zip(meth.getSymbol.params.values).foreach {
+            x => if (x._1.getType != x._2.getType) error("Type mismatch in overriding method " + meth.id.value, meth)
+          }
+        }
       }
     }
 
