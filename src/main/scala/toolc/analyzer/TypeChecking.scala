@@ -119,8 +119,13 @@ object TypeChecking extends Pipeline[Program, Program] {
       cl => cl.methods.foreach {
         meth => meth.getSymbol.overridden match {
           case None =>
-          case Some(over) => over.argList.zip(meth.getSymbol.argList).foreach {
-            x => if (x._1.getType != x._2.getType) error("Type mismatch in overriding method " + meth.id.value, meth)
+          case Some(over) => {
+            if (over.getType != meth.getSymbol.getType) error(meth.id.value + " must return a " + over.getType, meth)
+            over.argList.zip(meth.getSymbol.argList).foreach {
+	            x => {
+	              if (x._1.getType != x._2.getType) error("Type mismatch in overriding method " + meth.id.value, meth)
+	            }
+            }
           }
         }
       }
@@ -129,7 +134,8 @@ object TypeChecking extends Pipeline[Program, Program] {
     // Checking types of return stats
     prog.classes.foreach {
       cl => cl.methods foreach {
-        meth => tcExpr(meth.retExpr, meth.getSymbol.getType)
+        meth => if (tcExpr(meth.retExpr, meth.getSymbol.getType) != meth.getSymbol.getType) 
+        	error("Type mismatch " + meth.id.value + " must return a " + meth.retType.getType, meth.retExpr) 
       }
     }
 

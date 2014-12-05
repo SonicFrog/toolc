@@ -229,12 +229,25 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     def parseBang : ExprTree = {
       if (currentToken.kind == BANG) {
         readToken
-        new Not(parseDot).setPos(currentToken)
-      } else parseDot
+        new Not(parseBracket).setPos(currentToken)
+      } else parseBracket
+    }
+    
+    def parseBracket : ExprTree = {
+      var lhs = parseDot
+
+      while(currentToken.kind == LBRACKET) {
+        readToken
+        val index = expr
+        eat(RBRACKET)
+        lhs = new ArrayRead(lhs, index)
+      }
+
+      lhs
     }
 
     def parseDot : ExprTree = {
-      val lhs = parseBracket
+      val lhs = parseParens
 
       var meth : ExprTree = null
       var hasMoreArgs : Boolean = true
@@ -278,18 +291,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       else meth
     }
 
-    def parseBracket : ExprTree = {
-      var lhs = parseParens
 
-      while(currentToken.kind == LBRACKET) {
-        readToken
-        val index = expr
-        eat(RBRACKET)
-        lhs = new ArrayRead(lhs, index)
-      }
-
-      lhs
-    }
 
     def parseParens : ExprTree = {
       if (currentToken.kind == LPAREN) {
