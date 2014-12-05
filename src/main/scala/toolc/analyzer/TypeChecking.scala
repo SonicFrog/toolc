@@ -34,7 +34,7 @@ object TypeChecking extends Pipeline[Program, Program] {
 
         case LessThan(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt); TBool
         case Equals(lhs, rhs) => {
-          val t1 = tcExpr(lhs, TAnyObject, TInt, TString, TBool)
+          val t1 = tcExpr(lhs, TAnyObject, TInt, TString, TBool, TIntArray)
 
           t1 match {
             case TObject(cs) => tcExpr(rhs, TAnyObject)
@@ -134,7 +134,7 @@ object TypeChecking extends Pipeline[Program, Program] {
     // Checking types of return stats
     prog.classes.foreach {
       cl => cl.methods foreach {
-        meth => if (tcExpr(meth.retExpr, meth.getSymbol.getType) != meth.getSymbol.getType) 
+        meth => if (!tcExpr(meth.retExpr, meth.getSymbol.getType).isSubTypeOf(meth.getSymbol.getType)) 
         	error("Type mismatch " + meth.id.value + " must return a " + meth.retType.getType, meth.retExpr) 
       }
     }
