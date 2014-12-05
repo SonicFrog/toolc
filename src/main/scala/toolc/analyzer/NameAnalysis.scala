@@ -201,6 +201,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
     	classe.methods flatMap { mdcl => {
     		val mapMeth = collectMethodVariables(mdcl, mdcl.getSymbol)
     		val paramsTuple = collectMethodParam(mdcl, mdcl.getSymbol) 
+    		mdcl.getSymbol.setType(mdcl.retType.getType)
     		mdcl.getSymbol.params = paramsTuple._1
     		mdcl.getSymbol.argList = paramsTuple._2
     		mdcl.getSymbol.members = mapMeth
@@ -238,6 +239,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
       	attachSymbolToType(meth.retType)
       	handleExprTree(meth.retExpr, meth.getSymbol)
       	meth.args foreach (arg => attachSymbolToType(arg.tpe))
+      	meth.id.getSymbol.setType(meth.retType.getType)
       }
       })
     
