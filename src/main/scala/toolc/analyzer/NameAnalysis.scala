@@ -81,9 +81,9 @@ object NameAnalysis extends Pipeline[Program, Program] {
       **/
     def collectMethodParam(meth : MethodDecl, ms : MethodSymbol) : (Map[String, VariableSymbol], List[VariableSymbol]) = {
       def inner(map : Map[String, VariableSymbol], args : List[Formal]) :
-          (Map[String, VariableSymbol], List[Formal]) = {
+          Map[String, VariableSymbol] = {
         args match {
-          case Nil => (map, args)
+          case Nil => map
           case x :: xs => map.get(x.id.value) match {
             case None =>
               val ns = new VariableSymbol(x.id.value)
@@ -97,8 +97,8 @@ object NameAnalysis extends Pipeline[Program, Program] {
           }
         }
       }
-      val paramTuple = inner(Map(), meth.args)
-      (paramTuple._1, paramTuple._2  map ( u => u.getSymbol))
+      val params = inner(Map(), meth.args)
+      (params, meth.args map ( u => u.getSymbol))
     }
 
     def collectMethods(cls : ClassDecl, cs : ClassSymbol) : Map[String, MethodSymbol] = {
@@ -305,7 +305,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
         case ArrayLength(arr) => handleExprTree(arr, sym)
         case MethodCall(obj, meth, args) => handleExprTree(obj, sym)
           // we do nothing with the method id.
-          args foreach (handleExprTree(_, sym))
+          args foreach (expr => handleExprTree(expr, sym))
           
           
         case id : Identifier => attachVarSymbol(id, sym)

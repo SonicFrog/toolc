@@ -53,7 +53,6 @@ object TypeChecking extends Pipeline[Program, Program] {
 
         case MethodCall(obj, meth, args) => {
           val t = tcExpr(obj, TAnyObject)
-
           t match {
             case TObject(cs) =>
               cs.lookupMethod(meth.value) match {
@@ -69,6 +68,8 @@ object TypeChecking extends Pipeline[Program, Program] {
                   }
                   else {
                     meth.setSymbol(method)
+                    val zipped = args zip method.argList
+                    zipped foreach {tuple => tcExpr(tuple._1, tuple._2.getType)} 
                     method.getType
                   }
                 }
