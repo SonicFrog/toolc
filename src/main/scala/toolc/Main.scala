@@ -51,7 +51,5 @@ object Main {
 
     ctx.reporter.terminateIfErrors
 
-    println(Printer(result))
-
   }
 }
