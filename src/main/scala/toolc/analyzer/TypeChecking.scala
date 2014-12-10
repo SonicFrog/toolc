@@ -53,6 +53,7 @@ object TypeChecking extends Pipeline[Program, Program] {
 
         case MethodCall(obj, meth, args) => {
           val t = tcExpr(obj, TAnyObject)
+
           t match {
             case TObject(cs) =>
               cs.lookupMethod(meth.value) match {
@@ -69,7 +70,7 @@ object TypeChecking extends Pipeline[Program, Program] {
                   else {
                     meth.setSymbol(method)
                     val zipped = args zip method.argList
-                    zipped foreach {tuple => tcExpr(tuple._1, tuple._2.getType)} 
+                    zipped foreach {tuple => tcExpr(tuple._1, tuple._2.getType)}
                     method.getType
                   }
                 }
@@ -78,7 +79,7 @@ object TypeChecking extends Pipeline[Program, Program] {
           }
         }
 
-        case IntLit(value) => TInt
+        case IntLit(value) => expr.setType(TInt); TInt
         case StringLit(value) => TString
         case True() | False() => TBool
         case id : Identifier => id.getType
@@ -88,7 +89,7 @@ object TypeChecking extends Pipeline[Program, Program] {
         case NewIntArray(size) => tcExpr(size, TInt); TIntArray
       }
 
-
+      expr.setType(tpe) //Assign type computed above to current expression
 
       // Check result and return a valid type in case of error
       if(expected.isEmpty) {
@@ -122,9 +123,9 @@ object TypeChecking extends Pipeline[Program, Program] {
           case Some(over) => {
             if (over.getType != meth.getSymbol.getType) error(meth.id.value + " must return a " + over.getType, meth)
             over.argList.zip(meth.getSymbol.argList).foreach {
-	            x => {
-	              if (x._1.getType != x._2.getType) error("Type mismatch in overriding method " + meth.id.value, meth)
-	            }
+              x => {
+                if (x._1.getType != x._2.getType) error("Type mismatch in overriding method " + meth.id.value, meth)
+              }
             }
           }
         }
@@ -134,8 +135,8 @@ object TypeChecking extends Pipeline[Program, Program] {
     // Checking types of return stats
     prog.classes.foreach {
       cl => cl.methods foreach {
-        meth => if (!tcExpr(meth.retExpr, meth.getSymbol.getType).isSubTypeOf(meth.getSymbol.getType)) 
-        	error("Type mismatch " + meth.id.value + " must return a " + meth.retType.getType, meth.retExpr) 
+        meth => if (!tcExpr(meth.retExpr, meth.getSymbol.getType).isSubTypeOf(meth.getSymbol.getType))
+          error("Type mismatch " + meth.id.value + " must return a " + meth.retType.getType, meth.retExpr)
       }
     }
 
