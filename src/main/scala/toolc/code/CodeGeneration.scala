@@ -24,6 +24,17 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         case _ => sys.error("Internal compiler error!")
       }
     }
+    
+    def typetoJVMPrefixing(tpe: Type): String = {
+      tpe match {
+        case TObject(_) => "L" 
+        case TInt => "I"
+        case TString => "L"
+        case TBool => "Z"
+        case TIntArray => "[I"
+        case _ => sys.error("Internal compiler error!")
+      }
+    }
 
     /** Writes the proper .class file in a given directory. An empty string for dir is equivalent to "./". */
     def generateClassFile(sourceName: String, ct: ClassDecl, dir: String): Unit = {
@@ -32,7 +43,6 @@ object CodeGeneration extends Pipeline[Program, Unit] {
       classFile.setSourceFile(sourceName)
 
       ct.vars.foreach {
-        //FIXME: Not sure if the semicolon is required after only one type
         x => classFile.addField(typeToJVMType(x.tpe.getType) + ";", x.id.value)
       }
 
@@ -59,6 +69,8 @@ object CodeGeneration extends Pipeline[Program, Unit] {
       val env: Map[VariableSymbol, Int] = mt.vars.map {
         v => (v.id.getSymbol.asInstanceOf[VariableSymbol], ch.getFreshVar(typeToJVMType(v.id.getType)))
       } toMap
+      
+      mt.stats foreach { stat => generateStatementCode(ch, stat , env) }
 
       ch.freeze
     }
@@ -67,6 +79,45 @@ object CodeGeneration extends Pipeline[Program, Unit] {
       if (env.contains(v)) ch << ILoad(env(v))
       else if (meth.argList.contains(v)) ch << ArgLoad(meth.argList.indexOf(v))
       else ch << GetField(meth.classSymbol.name, v.name, typeToJVMType(v.getType))
+    }
+    
+    def generateStatementCode(ch: CodeHandler, stat: StatTree, env: Map[VariableSymbol, Int]): Unit = {
+      stat match {
+        case Block(stats) => stats foreach (generateStatementCode(ch, _, env))
+        case If(cond, thn, els) => {
+          generateExpressionCode(ch, cond, env)
+          generateStatementCode(ch, thn, env)
+          els foreach (generateStatementCode(ch, _, env))
+          
+          ???
+        }
+        
+        case While(cond, stat) => {
+          generateExpressionCode(ch, cond, env)
+          generateStatementCode(ch, stat, env)
+          
+          ???
+        }
+        
+        case Println(expr) => {
+          ch << GetStatic("java/lang/System", "out", "Ljava/io/PrintStream;")
+          generateExpressionCode(ch, expr, env)
+          ch << InvokeVirtual("java/io/PrintStream", "println", "(Ljava/lang/String;)V") <<
+          RETURN
+        }
+        
+        case Assign(id, expr) => {
+          generateExpressionCode(ch, expr, env)
+          ???
+          //ch << typetoJVMPrefixing(id.getType) match + Store(env(id.getSymbol))
+        }
+        
+        case ArrayAssign(id, index, expr) => {
+          ???
+          
+          generateExpressionCode(ch, expr, env)
+        }
+      }
     }
 
     def generateExpressionCode(ch: CodeHandler, expr: ExprTree, env: Map[VariableSymbol, Int]): Unit = {
@@ -79,6 +130,9 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         }
 
         case Plus(lhs, rhs) => {
+          generateExpressionCode(ch, lhs, env)
+          generateExpressionCode(ch, rhs, env)
+          
           ???
         }
 
