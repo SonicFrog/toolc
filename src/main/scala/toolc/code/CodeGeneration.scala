@@ -8,6 +8,7 @@ import cafebabe._
 import AbstractByteCodes.{ New => _, _ }
 import ByteCodes._
 import utils._
+import com.sun.org.apache.bcel.internal.generic.ICONST
 
 object CodeGeneration extends Pipeline[Program, Unit] {
 
@@ -19,17 +20,6 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         case TObject(cs) => "L" + cs.name
         case TInt => "I"
         case TString => "Ljava/lang/String"
-        case TBool => "Z"
-        case TIntArray => "[I"
-        case _ => sys.error("Internal compiler error!")
-      }
-    }
-    
-    def typetoJVMPrefixing(tpe: Type): String = {
-      tpe match {
-        case TObject(_) => "L" 
-        case TInt => "I"
-        case TString => "L"
         case TBool => "Z"
         case TIntArray => "[I"
         case _ => sys.error("Internal compiler error!")
@@ -70,104 +60,173 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         v => (v.id.getSymbol.asInstanceOf[VariableSymbol], ch.getFreshVar(typeToJVMType(v.id.getType)))
       } toMap
       
-      mt.stats foreach { stat => generateStatementCode(ch, stat , env) }
+      mt.stats foreach { stat => generateStatementCode(ch, mt, stat , env) }
 
       ch.freeze
     }
 
     def pushVar(v: VariableSymbol, meth: MethodSymbol, env: Map[VariableSymbol, Int], ch: CodeHandler): Unit = {
-      if (env.contains(v)) ch << ILoad(env(v))
+      if (env.contains(v)) {
+        val jVMSlot = env(v);
+        ch << (v.getType match {
+	        case TInt | TBool => ILoad(jVMSlot)
+	        case TObject(_) | TString => LLoad(jVMSlot)
+	        case TIntArray => ALoad(jVMSlot)
+	        case _ => sys.error("Internal compiler error!")
+	    })
+      }
       else if (meth.argList.contains(v)) ch << ArgLoad(meth.argList.indexOf(v))
       else ch << GetField(meth.classSymbol.name, v.name, typeToJVMType(v.getType))
     }
     
-    def generateStatementCode(ch: CodeHandler, stat: StatTree, env: Map[VariableSymbol, Int]): Unit = {
+    def generateStatementCode(ch: CodeHandler, mt: MethodDecl, stat: StatTree, env: Map[VariableSymbol, Int]): Unit = {
       stat match {
-        case Block(stats) => stats foreach (generateStatementCode(ch, _, env))
+        case Block(stats) => stats foreach (generateStatementCode(ch, mt, _, env))
         case If(cond, thn, els) => {
-          generateExpressionCode(ch, cond, env)
-          generateStatementCode(ch, thn, env)
-          els foreach (generateStatementCode(ch, _, env))
+          val labelElse = ch.getFreshLabel("else")
+          val labelEndIf = ch.getFreshLabel("endIf")
           
-          ???
+          generateExpressionCode(ch, mt, cond, env)
+          
+          ch << Ldc(1) << If_ICmpNe(labelElse)
+          
+          generateStatementCode(ch, mt, thn, env)
+          
+          ch << Goto(labelEndIf) << Label(labelElse)
+          els foreach (generateStatementCode(ch, mt, _, env))
+          
+          ch << Label(labelEndIf)
         }
         
         case While(cond, stat) => {
-          generateExpressionCode(ch, cond, env)
-          generateStatementCode(ch, stat, env)
+          val labelStartLoop = ch.getFreshLabel("loopStart")
+          val labelEndLoop = ch.getFreshLabel("loopEnd")
           
-          ???
+          ch << Label(labelStartLoop)
+          
+          generateExpressionCode(ch, mt, cond, env)
+          
+          ch << Ldc(1) << If_ICmpNe(labelEndLoop)
+          
+          generateStatementCode(ch, mt, stat, env)
+          
+          ch << Goto(labelStartLoop) << Label(labelEndLoop)
+          
         }
         
         case Println(expr) => {
           ch << GetStatic("java/lang/System", "out", "Ljava/io/PrintStream;")
-          generateExpressionCode(ch, expr, env)
-          ch << InvokeVirtual("java/io/PrintStream", "println", "(Ljava/lang/String;)V") <<
-          RETURN
+          generateExpressionCode(ch, mt, expr, env)
+          ch << InvokeVirtual("java/io/PrintStream", "println", "(Ljava/lang/String;)V")
         }
         
         case Assign(id, expr) => {
-          generateExpressionCode(ch, expr, env)
-          ???
-          //ch << typetoJVMPrefixing(id.getType) match + Store(env(id.getSymbol))
+        	generateExpressionCode(ch, mt, expr, env)
+        	
+        	val jVMSlot = env(id.getSymbol.asInstanceOf[VariableSymbol])
+        	
+        	ch << (id.getType match {
+    			case TObject(_) =>  LStore(jVMSlot) 
+    			case TInt =>  IStore(jVMSlot)
+    			case TString =>  LStore(jVMSlot)
+    			case TBool =>  IStore(jVMSlot)
+    			case TIntArray =>  AStore(jVMSlot)
+    			case _ => sys.error("Internal compiler error!")
+        	})
         }
         
         case ArrayAssign(id, index, expr) => {
           ???
           
-          generateExpressionCode(ch, expr, env)
+          generateExpressionCode(ch, mt, expr, env)
         }
       }
     }
 
-    def generateExpressionCode(ch: CodeHandler, expr: ExprTree, env: Map[VariableSymbol, Int]): Unit = {
+    def generateExpressionCode(ch: CodeHandler, mt: MethodDecl, expr: ExprTree, env: Map[VariableSymbol, Int]): Unit = {
       expr match {
         case Equals(lhs, rhs) => {
-          generateExpressionCode(ch, lhs, env)
-          generateExpressionCode(ch, rhs, env)
-
-          ???
+          generateExpressionCode(ch, mt, lhs, env)
+          generateExpressionCode(ch, mt, rhs, env)
+          
+          val labelAfter = ch.getFreshLabel("after")
+          val labelTrue = ch.getFreshLabel("true")
+          
+          lhs.getType match {
+            case TInt | TBool => ch << If_ICmpEq(labelTrue)
+            case TIntArray | TObject(_) | TString => ch << If_ACmpEq(labelTrue)
+            case _ => sys.error("Internal compiler error!")
+          }
+          
+          ch << Ldc(0) << Goto(labelAfter) << Label(labelTrue) << Ldc(1) << Label(labelAfter)
         }
 
         case Plus(lhs, rhs) => {
-          generateExpressionCode(ch, lhs, env)
-          generateExpressionCode(ch, rhs, env)
+          generateExpressionCode(ch, mt, lhs, env)
+          generateExpressionCode(ch, mt, rhs, env)
           
           ???
         }
 
-        case Minus(lhs, rhs) => ???
-        case Times(lhs, rhs) => ???
-        case Div(lhs, rhs) => ???
-        case IntLit(value) => ???
+        case Minus(lhs, rhs) => {
+          generateExpressionCode(ch, mt, lhs, env)
+          generateExpressionCode(ch, mt, rhs, env)
+          
+          ch << ISUB
+        }
+        
+        case Times(lhs, rhs) => {
+          generateExpressionCode(ch, mt, lhs, env)
+          generateExpressionCode(ch, mt, rhs, env)
+          
+          ch << IMUL
+        }
+        
+        case Div(lhs, rhs) => {
+          generateExpressionCode(ch, mt, lhs, env)
+          generateExpressionCode(ch, mt, rhs, env)
+          
+          ch << IDIV
+        }
+        
+        case IntLit(value) => ch << Ldc(value)
+        
         case LessThan(lhs, rhs) => ???
         case New(tpe) => ch << DefaultNew(typeToJVMType(tpe.getType))
-        case Not(bool) => ???
-        case This() => ???
-        case StringLit(value) => ???
-        case True() => ???
-        case False() => ???
+        case Not(bool) => {
+          generateExpressionCode(ch, mt, bool, env)
+          
+          val labelAfter = ch.getFreshLabel("after")
+          val labelTrue = ch.getFreshLabel("true")
+          
+          ch << Ldc(0) << If_ICmpEq(labelTrue) << Ldc(1) << Goto(labelAfter) << Label(labelTrue) << Ldc(0) << Label(labelAfter)
+        }
+        
+        case This() => ch << ArgLoad(0)
+        case StringLit(value) => ch << Ldc(value)
+        case True() => ch << Ldc(1)
+        case False() => ch << Ldc(0)
 
         case MethodCall(obj, meth, args) => {
-          generateExpressionCode(ch, obj, env)
+          generateExpressionCode(ch, mt, obj, env)
           //TODO: push arguments on the stack
           ch << InvokeVirtual(typeToJVMType(obj.getType), meth.value, "("+args.map(x => typeToJVMType(x.getType)).mkString+")" + typeToJVMType(expr.getType))
         }
 
         case ArrayLength(arr) => {
-          generateExpressionCode(ch, arr, env)
+          generateExpressionCode(ch, mt, arr, env)
           ch << ARRAYLENGTH
         }
 
         case ArrayRead(arr, index) => {
-          generateExpressionCode(ch, arr, env)
-          generateExpressionCode(ch, index, env)
+          generateExpressionCode(ch, mt, arr, env)
+          generateExpressionCode(ch, mt, index, env)
           ch << IALOAD
         }
 
         case NewIntArray(size) => ch << NewArray("I")
 
-        case Identifier(value) => ???
+        case id : Identifier => pushVar(id.getSymbol.asInstanceOf[VariableSymbol], mt.getSymbol , env, ch)
 
         case Or(lhs, rhs) => ???
         case And(lhs, rhs) => ???
