@@ -169,7 +169,9 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           generateExpressionCode(ch, mt, lhs, env)
           generateExpressionCode(ch, mt, rhs, env)
 
-          ???
+          if(lhs.getType == TInt && rhs.getType == TInt) {
+            ch << IADD
+          }
         }
 
         case Minus(lhs, rhs) => {
