@@ -59,7 +59,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
       val env: Map[VariableSymbol, Int] = mt.vars.map {
         v => (v.id.getSymbol.asInstanceOf[VariableSymbol], ch.getFreshVar(typeToJVMType(v.id.getType)))
       } toMap
-      
+
       mt.stats foreach { stat => generateStatementCode(ch, mt, stat , env) }
 
       ch.freeze
@@ -69,76 +69,80 @@ object CodeGeneration extends Pipeline[Program, Unit] {
       if (env.contains(v)) {
         val jVMSlot = env(v);
         ch << (v.getType match {
-	        case TInt | TBool => ILoad(jVMSlot)
-	        case TObject(_) | TString => LLoad(jVMSlot)
-	        case TIntArray => ALoad(jVMSlot)
-	        case _ => sys.error("Internal compiler error!")
-	    })
+          case TInt | TBool => ILoad(jVMSlot)
+          case TObject(_) | TString => LLoad(jVMSlot)
+          case TIntArray => ALoad(jVMSlot)
+          case _ => sys.error("Internal compiler error!")
+        })
       }
       else if (meth.argList.contains(v)) ch << ArgLoad(meth.argList.indexOf(v))
       else ch << GetField(meth.classSymbol.name, v.name, typeToJVMType(v.getType))
     }
-    
+
     def generateStatementCode(ch: CodeHandler, mt: MethodDecl, stat: StatTree, env: Map[VariableSymbol, Int]): Unit = {
       stat match {
         case Block(stats) => stats foreach (generateStatementCode(ch, mt, _, env))
         case If(cond, thn, els) => {
           val labelElse = ch.getFreshLabel("else")
           val labelEndIf = ch.getFreshLabel("endIf")
-          
+
           generateExpressionCode(ch, mt, cond, env)
-          
+
           ch << Ldc(1) << If_ICmpNe(labelElse)
-          
+
           generateStatementCode(ch, mt, thn, env)
-          
+
           ch << Goto(labelEndIf) << Label(labelElse)
           els foreach (generateStatementCode(ch, mt, _, env))
-          
+
           ch << Label(labelEndIf)
         }
-        
+
         case While(cond, stat) => {
           val labelStartLoop = ch.getFreshLabel("loopStart")
           val labelEndLoop = ch.getFreshLabel("loopEnd")
-          
+
           ch << Label(labelStartLoop)
-          
+
           generateExpressionCode(ch, mt, cond, env)
-          
+
           ch << Ldc(1) << If_ICmpNe(labelEndLoop)
-          
+
           generateStatementCode(ch, mt, stat, env)
-          
+
           ch << Goto(labelStartLoop) << Label(labelEndLoop)
-          
+
         }
-        
+
         case Println(expr) => {
           ch << GetStatic("java/lang/System", "out", "Ljava/io/PrintStream;")
           generateExpressionCode(ch, mt, expr, env)
           ch << InvokeVirtual("java/io/PrintStream", "println", "(Ljava/lang/String;)V")
         }
-        
+
         case Assign(id, expr) => {
-        	generateExpressionCode(ch, mt, expr, env)
-        	
-        	val jVMSlot = env(id.getSymbol.asInstanceOf[VariableSymbol])
-        	
-        	ch << (id.getType match {
-    			case TObject(_) =>  LStore(jVMSlot) 
-    			case TInt =>  IStore(jVMSlot)
-    			case TString =>  LStore(jVMSlot)
-    			case TBool =>  IStore(jVMSlot)
-    			case TIntArray =>  AStore(jVMSlot)
-    			case _ => sys.error("Internal compiler error!")
-        	})
-        }
-        
-        case ArrayAssign(id, index, expr) => {
-          ???
-          
           generateExpressionCode(ch, mt, expr, env)
+
+          val jVMSlot = env(id.getSymbol.asInstanceOf[VariableSymbol])
+
+          ch << (id.getType match {
+            case TObject(_) =>  LStore(jVMSlot)
+            case TInt =>  IStore(jVMSlot)
+            case TString =>  LStore(jVMSlot)
+            case TBool =>  IStore(jVMSlot)
+            case TIntArray =>  AStore(jVMSlot)
+            case _ => sys.error("Internal compiler error!")
+          })
+        }
+
+        case ArrayAssign(id, index, expr) => {
+          generateExpressionCode(ch, mt, id, env)
+
+          generateExpressionCode(ch, mt, index, env)
+
+          generateExpressionCode(ch, mt, expr, env)
+
+          ch << IASTORE
         }
       }
     }
@@ -148,60 +152,60 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         case Equals(lhs, rhs) => {
           generateExpressionCode(ch, mt, lhs, env)
           generateExpressionCode(ch, mt, rhs, env)
-          
+
           val labelAfter = ch.getFreshLabel("after")
           val labelTrue = ch.getFreshLabel("true")
-          
+
           lhs.getType match {
             case TInt | TBool => ch << If_ICmpEq(labelTrue)
             case TIntArray | TObject(_) | TString => ch << If_ACmpEq(labelTrue)
             case _ => sys.error("Internal compiler error!")
           }
-          
+
           ch << Ldc(0) << Goto(labelAfter) << Label(labelTrue) << Ldc(1) << Label(labelAfter)
         }
 
         case Plus(lhs, rhs) => {
           generateExpressionCode(ch, mt, lhs, env)
           generateExpressionCode(ch, mt, rhs, env)
-          
+
           ???
         }
 
         case Minus(lhs, rhs) => {
           generateExpressionCode(ch, mt, lhs, env)
           generateExpressionCode(ch, mt, rhs, env)
-          
+
           ch << ISUB
         }
-        
+
         case Times(lhs, rhs) => {
           generateExpressionCode(ch, mt, lhs, env)
           generateExpressionCode(ch, mt, rhs, env)
-          
+
           ch << IMUL
         }
-        
+
         case Div(lhs, rhs) => {
           generateExpressionCode(ch, mt, lhs, env)
           generateExpressionCode(ch, mt, rhs, env)
-          
+
           ch << IDIV
         }
-        
+
         case IntLit(value) => ch << Ldc(value)
-        
+
         case LessThan(lhs, rhs) => ???
         case New(tpe) => ch << DefaultNew(typeToJVMType(tpe.getType))
         case Not(bool) => {
           generateExpressionCode(ch, mt, bool, env)
-          
+
           val labelAfter = ch.getFreshLabel("after")
           val labelTrue = ch.getFreshLabel("true")
-          
+
           ch << Ldc(0) << If_ICmpEq(labelTrue) << Ldc(1) << Goto(labelAfter) << Label(labelTrue) << Ldc(0) << Label(labelAfter)
         }
-        
+
         case This() => ch << ArgLoad(0)
         case StringLit(value) => ch << Ldc(value)
         case True() => ch << Ldc(1)
