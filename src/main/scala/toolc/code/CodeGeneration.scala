@@ -22,7 +22,6 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         case TString => "Ljava/lang/String;"
         case TBool => "Z"
         case TIntArray => "[I"
-        case _ => sys.error("Internal compiler error!")
       }
     }
 
@@ -34,7 +33,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
       classFile.addDefaultConstructor
 
       ct.vars.foreach {
-        x => classFile.addField(typeToJVMType(x.tpe.getType), x.id.value)
+        x => classFile.addField(typeToJVMType(x.id.getType), x.id.value)
       }
 
       ct.methods.foreach {
@@ -46,6 +45,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           generateMethodCode(handler, meth)
         }
       }
+
       classFile.writeToFile(dir)
     }
 
@@ -83,7 +83,25 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         })
       }
       else if (meth.argList.contains(v)) ch << ArgLoad(meth.argList.indexOf(v) + 1)
-      else ch << GetField(meth.classSymbol.name, v.name, typeToJVMType(v.getType))
+      else ch << ALoad(0) << GetField(meth.classSymbol.name, v.name, typeToJVMType(v.getType))
+    }
+
+    def storeVar(v : VariableSymbol, meth : MethodSymbol, env : Map[VariableSymbol, Int], ch : CodeHandler) : Unit = {
+      val jVMSlot = env.get(v)
+
+      if (jVMSlot.isDefined) {
+        ch << (v.getType match {
+          case TInt | TBool => IStore(jVMSlot.get)
+          case TObject(_) | TString | TIntArray => AStore(jVMSlot.get)
+          case _ => sys.error("Internal compiler error!")
+        })
+      }
+      else if (meth.argList.contains(v)) ch << (v.getType match {
+        case TInt | TBool => IStore(meth.argList.indexOf(v) + 1)
+        case TObject(_) | TString | TIntArray => AStore(meth.argList.indexOf(v) + 1)
+        case _ => sys.error("Internal compiler error!")
+      })
+      else ch << ALoad(0) << PutField(meth.classSymbol.name, v.name, typeToJVMType(v.getType))
     }
 
     def generateStatementCode(ch: CodeHandler, mt: MethodDecl, stat: StatTree, env: Map[VariableSymbol, Int]): Unit = {
@@ -131,14 +149,11 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         case Assign(id, expr) => {
           generateExpressionCode(ch, mt, expr, env)
 
-          val jVMSlot = env(id.getSymbol.asInstanceOf[VariableSymbol])
-
-          ch << (id.getType match {
-            case TObject(_) | TIntArray | TString =>  AStore(jVMSlot)
-            case TInt | TBool =>  IStore(jVMSlot)
-            case _ => sys.error("Internal compiler error!")
-          })
+          storeVar(id.getSymbol.asInstanceOf[VariableSymbol], mt.getSymbol, env, ch)
         }
+
+
+
 
         case ArrayAssign(id, index, expr) => {
           generateExpressionCode(ch, mt, id, env)
@@ -179,10 +194,10 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           } else {
             ch << DefaultNew("java/lang/StringBuilder")
             generateExpressionCode(ch, mt, lhs, env)
-            ch << InvokeSpecial("java/lang/StringBuilder", "append", typeToJVMType(lhs.getType)+ ";Ljava/lang/StringBuilder")
+            ch << InvokeSpecial("java/lang/StringBuilder", "append", "(" + typeToJVMType(lhs.getType) + ")"+ "Ljava/lang/StringBuilder;")
             generateExpressionCode(ch, mt, rhs, env)
-            ch << InvokeSpecial("java/lang/StringBuilder", "append", typeToJVMType(rhs.getType)+ ";Ljava/lang/StringBuilder")
-            ch << InvokeSpecial("java/lang/StringBuilder", "toString", ";Ljava/lang/String")
+            ch << InvokeSpecial("java/lang/StringBuilder", "append", "(" + typeToJVMType(rhs.getType) + ")"+ "Ljava/lang/StringBuilder;")
+            ch << InvokeSpecial("java/lang/StringBuilder", "toString", "()Ljava/lang/String;")
           }
         }
 
