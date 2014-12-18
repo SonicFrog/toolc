@@ -86,58 +86,49 @@ object CodeGeneration extends Pipeline[Program, Unit] {
       else ch << ALoad(0) << GetField(meth.classSymbol.name, v.name, typeToJVMType(v.getType))
     }
 
-    def storeVar(v : VariableSymbol, meth : MethodSymbol, env : Map[VariableSymbol, Int], ch : CodeHandler) : Unit = {
-      val jVMSlot = env.get(v)
-
-      if (jVMSlot.isDefined) {
-        ch << (v.getType match {
-          case TInt | TBool => IStore(jVMSlot.get)
-          case TObject(_) | TString | TIntArray => AStore(jVMSlot.get)
-          case _ => sys.error("Internal compiler error!")
-        })
-      }
-      else if (meth.argList.contains(v)) ch << (v.getType match {
-        case TInt | TBool => IStore(meth.argList.indexOf(v) + 1)
-        case TObject(_) | TString | TIntArray => AStore(meth.argList.indexOf(v) + 1)
-        case _ => sys.error("Internal compiler error!")
-      })
-      else ch << ALoad(0) << PutField(meth.classSymbol.name, v.name, typeToJVMType(v.getType))
-    }
-
     def generateStatementCode(ch: CodeHandler, mt: MethodDecl, stat: StatTree, env: Map[VariableSymbol, Int]): Unit = {
       ch << LineNumber(stat.line)
       stat match {
         case Block(stats) => stats foreach (generateStatementCode(ch, mt, _, env))
         case If(cond, thn, els) => {
-          val labelElse = ch.getFreshLabel("else")
-          val labelEndIf = ch.getFreshLabel("endIf")
+          val end = ch.getFreshLabel("if_end")
 
           generateExpressionCode(ch, mt, cond, env)
 
-          ch << IfEq(labelElse)
+          if (els.isEmpty) {
+            ch << IfEq(end)
 
-          generateStatementCode(ch, mt, thn, env)
+            generateStatementCode(ch, mt, thn, env)
+          }
+          else {
+            val els_lab = ch.getFreshLabel("if_else")
+            ch << IfEq(els_lab)
 
-          ch << Goto(labelEndIf) << Label(labelElse)
-          els foreach (generateStatementCode(ch, mt, _, env))
+            generateStatementCode(ch, mt, thn, env)
 
-          ch << Label(labelEndIf)
+            ch << Goto(end)
+
+            ch << Label(els_lab)
+
+            generateStatementCode(ch, mt, els.get, env)
+          }
+
+          ch << Label(end)
         }
 
         case While(cond, stat) => {
-          val labelStartLoop = ch.getFreshLabel("loopStart")
-          val labelEndLoop = ch.getFreshLabel("loopEnd")
+          val begin = ch.getFreshLabel("loopStart")
+          val end = ch.getFreshLabel("loopEnd")
 
-          ch << Label(labelStartLoop)
+          ch << Label(begin)
 
           generateExpressionCode(ch, mt, cond, env)
 
-          ch << Ldc(1) << If_ICmpNe(labelEndLoop)
+          ch << IfEq(end)
 
           generateStatementCode(ch, mt, stat, env)
 
-          ch << Goto(labelStartLoop) << Label(labelEndLoop)
-
+          ch << Goto(begin) << Label(end)
         }
 
         case Println(expr) => {
@@ -147,13 +138,34 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         }
 
         case Assign(id, expr) => {
-          generateExpressionCode(ch, mt, expr, env)
 
-          storeVar(id.getSymbol.asInstanceOf[VariableSymbol], mt.getSymbol, env, ch)
+          val v = id.getSymbol.asInstanceOf[VariableSymbol]
+          val jVMSlot = env.get(v)
+
+          if (jVMSlot.isDefined) {
+            generateExpressionCode(ch, mt, expr, env)
+            ch << (v.getType match {
+              case TInt | TBool => IStore(jVMSlot.get)
+              case TObject(_) | TString | TIntArray => AStore(jVMSlot.get)
+              case _ => sys.error("Internal compiler error!")
+            })
+          }
+          else if (mt.getSymbol.argList.contains(v)) {
+            generateExpressionCode(ch, mt, expr, env)
+            ch << (v.getType match {
+              case TInt | TBool => IStore(mt.getSymbol.argList.indexOf(v) + 1)
+              case TObject(_) | TString | TIntArray => AStore(mt.getSymbol.argList.indexOf(v) + 1)
+              case _ => sys.error("Internal compiler error!")
+            })
+          }
+          else {
+            ch << ALoad(0)
+
+            generateExpressionCode(ch, mt, expr, env)
+
+            ch << PutField(mt.getSymbol.classSymbol.name, v.name, typeToJVMType(v.getType))
+          }
         }
-
-
-
 
         case ArrayAssign(id, index, expr) => {
           generateExpressionCode(ch, mt, id, env)
@@ -170,19 +182,20 @@ object CodeGeneration extends Pipeline[Program, Unit] {
     def generateExpressionCode(ch: CodeHandler, mt: MethodDecl, expr: ExprTree, env: Map[VariableSymbol, Int]): Unit = {
       expr match {
         case Equals(lhs, rhs) => {
+          val labelAfter = ch.getFreshLabel("after")
+
+          ch << Ldc(1)
+
           generateExpressionCode(ch, mt, lhs, env)
           generateExpressionCode(ch, mt, rhs, env)
 
-          val labelAfter = ch.getFreshLabel("after")
-          val labelTrue = ch.getFreshLabel("true")
-
           lhs.getType match {
-            case TInt | TBool => ch << If_ICmpEq(labelTrue)
-            case TIntArray | TObject(_) | TString => ch << If_ACmpEq(labelTrue)
+            case TInt | TBool => ch << If_ICmpEq(labelAfter)
+            case TIntArray | TObject(_) | TString => ch << If_ACmpEq(labelAfter)
             case _ => sys.error("Internal compiler error!")
           }
 
-          ch << Ldc(0) << Goto(labelAfter) << Label(labelTrue) << Ldc(1) << Label(labelAfter)
+          ch << POP << Ldc(0) << Label(labelAfter)
         }
 
         case Plus(lhs, rhs) => {
@@ -194,10 +207,10 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           } else {
             ch << DefaultNew("java/lang/StringBuilder")
             generateExpressionCode(ch, mt, lhs, env)
-            ch << InvokeSpecial("java/lang/StringBuilder", "append", "(" + typeToJVMType(lhs.getType) + ")"+ "Ljava/lang/StringBuilder;")
+            ch << InvokeVirtual("java/lang/StringBuilder", "append", "(" + typeToJVMType(lhs.getType) + ")"+ "Ljava/lang/StringBuilder;")
             generateExpressionCode(ch, mt, rhs, env)
-            ch << InvokeSpecial("java/lang/StringBuilder", "append", "(" + typeToJVMType(rhs.getType) + ")"+ "Ljava/lang/StringBuilder;")
-            ch << InvokeSpecial("java/lang/StringBuilder", "toString", "()Ljava/lang/String;")
+            ch << InvokeVirtual("java/lang/StringBuilder", "append", "(" + typeToJVMType(rhs.getType) + ")"+ "Ljava/lang/StringBuilder;")
+            ch << InvokeVirtual("java/lang/StringBuilder", "toString", "()Ljava/lang/String;")
           }
         }
 
@@ -237,13 +250,18 @@ object CodeGeneration extends Pipeline[Program, Unit] {
 
         case New(tpe) => ch << DefaultNew(tpe.value)
         case Not(bool) => {
+          val end = ch.getFreshLabel("not_end")
+
           generateExpressionCode(ch, mt, bool, env)
 
-          val labelAfter = ch.getFreshLabel("after")
-          val labelTrue = ch.getFreshLabel("true")
-
-          ch << Ldc(0) << If_ICmpEq(labelTrue) << Ldc(1) << Goto(labelAfter) << Label(labelTrue) << Ldc(0) << Label(labelAfter)
+          ch << Ldc(1)
+          ch << SWAP
+          ch << IfEq(end)
+          ch << POP
+          ch << Ldc(0)
+          ch << Label(end)
         }
+
 
         case This() => ch << ArgLoad(0)
         case StringLit(value) => ch << Ldc(value)
@@ -254,6 +272,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           generateExpressionCode(ch, mt, obj, env)
           args.foreach(x => generateExpressionCode(ch, mt, x, env))
           val sym = meth.getSymbol.asInstanceOf[MethodSymbol]
+
           ch << InvokeVirtual(sym.classSymbol.name, meth.value, "("+args.map(x => typeToJVMType(x.getType)).mkString+")" + typeToJVMType(expr.getType))
         }
 
@@ -270,36 +289,40 @@ object CodeGeneration extends Pipeline[Program, Unit] {
 
         case NewIntArray(size) => {
           generateExpressionCode(ch, mt, size, env)
-          ch << NewArray("I")
+          ch << NewArray(10) // 10 sets type to Int
         }
 
         case id : Identifier => pushVar(id.getSymbol.asInstanceOf[VariableSymbol], mt.getSymbol , env, ch)
 
         case Or(lhs, rhs) => {
+          val end = ch.getFreshLabel("end_or")
+          ch << Ldc(1)
+
           generateExpressionCode(ch, mt, lhs, env)
 
-          val labelAfter = ch.getFreshLabel("afterExpr")
-          val label1GuardTrue = ch.getFreshLabel("Guard1true")
-          val label2Guard = ch.getFreshLabel("guard2")
+          ch << IfNe(end)
 
-          ch << Ldc(1) << If_ICmpEq(label1GuardTrue) << Goto(label2Guard) << Label(label1GuardTrue) << Ldc(1) << Goto(labelAfter) << Label(label2Guard)
+          ch << POP
 
           generateExpressionCode(ch, mt, rhs, env)
-          ch << Label(labelAfter)
+
+          ch << Label(end)
         }
 
         case And(lhs, rhs) => {
+          val end = ch.getFreshLabel("end_and")
+
+          ch << Ldc(0)
+
           generateExpressionCode(ch, mt, lhs, env)
 
-          val labelAfter = ch.getFreshLabel("afterExpr")
-          val label1GuardTrue = ch.getFreshLabel("Guard1true")
-          val label2Guard = ch.getFreshLabel("guard2")
+          ch << IfEq(end)
 
-          ch << Ldc(1) << If_ICmpEq(label1GuardTrue) << Ldc(0) << Goto(labelAfter) << Label(label1GuardTrue) << Label(label2Guard)
+          ch << POP
 
-          generateExpressionCode(ch, mt, rhs, env)
+          generateExpressionCode(ch, mt ,rhs, env)
 
-          ch << Label(labelAfter)
+          ch << Label(end)
         }
       }
     }
