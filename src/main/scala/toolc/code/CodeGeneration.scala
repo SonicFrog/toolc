@@ -19,7 +19,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
       tpe match {
         case TObject(cs) => "L" + cs.name + ";"
         case TInt => "I"
-        case TString => "Ljava/lang/String"
+        case TString => "Ljava/lang/String;"
         case TBool => "Z"
         case TIntArray => "[I"
         case _ => sys.error("Internal compiler error!")
@@ -31,14 +31,14 @@ object CodeGeneration extends Pipeline[Program, Unit] {
       val classFile = new ClassFile(ct.id.value, ct.parent.flatMap(x => Some(x.value)))
 
       classFile.setSourceFile(sourceName)
+      classFile.addDefaultConstructor
 
       ct.vars.foreach {
-        x => classFile.addField(typeToJVMType(x.tpe.getType) + ";", x.id.value)
+        x => classFile.addField(typeToJVMType(x.tpe.getType), x.id.value)
       }
 
       ct.methods.foreach {
-        meth =>
-        {
+        meth => {
           val retTpe = meth.id.getSymbol.getType
           val argsString = meth.args.map(_.id.getType).map(typeToJVMType(_)).mkString
           val handler = classFile.addMethod(typeToJVMType(retTpe), meth.id.value, argsString).codeHandler
@@ -46,7 +46,6 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           generateMethodCode(handler, meth)
         }
       }
-
       classFile.writeToFile(dir)
     }
 
@@ -62,6 +61,15 @@ object CodeGeneration extends Pipeline[Program, Unit] {
 
       mt.stats foreach { stat => generateStatementCode(ch, mt, stat , env) }
 
+      ch << LineNumber(mt.retExpr.line)
+      generateExpressionCode(ch, mt, mt.retExpr, env)
+
+      ch << (mt.retExpr.getType match {
+        case TString | TIntArray | TObject(_) => ARETURN
+        case TBool | TInt => IRETURN
+        case _ => sys.error("Internal compiler error!")
+      })
+
       ch.freeze
     }
 
@@ -70,16 +78,16 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         val jVMSlot = env(v);
         ch << (v.getType match {
           case TInt | TBool => ILoad(jVMSlot)
-          case TObject(_) | TString => LLoad(jVMSlot)
-          case TIntArray => ALoad(jVMSlot)
+          case TObject(_) | TString | TIntArray => ALoad(jVMSlot)
           case _ => sys.error("Internal compiler error!")
         })
       }
-      else if (meth.argList.contains(v)) ch << ArgLoad(meth.argList.indexOf(v) - 1)
+      else if (meth.argList.contains(v)) ch << ArgLoad(meth.argList.indexOf(v) + 1)
       else ch << GetField(meth.classSymbol.name, v.name, typeToJVMType(v.getType))
     }
 
     def generateStatementCode(ch: CodeHandler, mt: MethodDecl, stat: StatTree, env: Map[VariableSymbol, Int]): Unit = {
+      ch << LineNumber(stat.line)
       stat match {
         case Block(stats) => stats foreach (generateStatementCode(ch, mt, _, env))
         case If(cond, thn, els) => {
@@ -88,7 +96,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
 
           generateExpressionCode(ch, mt, cond, env)
 
-          ch << Ldc(1) << If_ICmpNe(labelElse)
+          ch << IfEq(labelElse)
 
           generateStatementCode(ch, mt, thn, env)
 
@@ -117,7 +125,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         case Println(expr) => {
           ch << GetStatic("java/lang/System", "out", "Ljava/io/PrintStream;")
           generateExpressionCode(ch, mt, expr, env)
-          ch << InvokeVirtual("java/io/PrintStream", "println", "(Ljava/lang/String;)V")
+          ch << InvokeVirtual("java/io/PrintStream", "println", "(" + typeToJVMType(expr.getType) + ")V")
         }
 
         case Assign(id, expr) => {
@@ -126,11 +134,8 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           val jVMSlot = env(id.getSymbol.asInstanceOf[VariableSymbol])
 
           ch << (id.getType match {
-            case TObject(_) =>  LStore(jVMSlot)
-            case TInt =>  IStore(jVMSlot)
-            case TString =>  LStore(jVMSlot)
-            case TBool =>  IStore(jVMSlot)
-            case TIntArray =>  AStore(jVMSlot)
+            case TObject(_) | TIntArray | TString =>  AStore(jVMSlot)
+            case TInt | TBool =>  IStore(jVMSlot)
             case _ => sys.error("Internal compiler error!")
           })
         }
@@ -205,16 +210,17 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         case IntLit(value) => ch << Ldc(value)
 
         case LessThan(lhs, rhs) => {
+          val labelAfter = ch.getFreshLabel("after")
+
+          ch << Ldc(1)
+
           generateExpressionCode(ch, mt, lhs, env)
           generateExpressionCode(ch, mt, rhs, env)
 
-          val labelAfter = ch.getFreshLabel("after")
-          val labelTrue = ch.getFreshLabel("true")
-
-          ch << If_ICmpLt(labelTrue) << Ldc(0) << Goto(labelAfter) << Label(labelTrue) << Ldc(1) << Label(labelAfter)
+          ch << If_ICmpLt(labelAfter) << POP << Ldc(0) << Label(labelAfter)
         }
 
-        case New(tpe) => ch << DefaultNew(typeToJVMType(tpe.getType))
+        case New(tpe) => ch << DefaultNew(tpe.value)
         case Not(bool) => {
           generateExpressionCode(ch, mt, bool, env)
 
@@ -232,7 +238,8 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         case MethodCall(obj, meth, args) => {
           generateExpressionCode(ch, mt, obj, env)
           args.foreach(x => generateExpressionCode(ch, mt, x, env))
-          ch << InvokeVirtual(typeToJVMType(obj.getType), meth.value, "("+args.map(x => typeToJVMType(x.getType)).mkString+")" + typeToJVMType(expr.getType))
+          val sym = meth.getSymbol.asInstanceOf[MethodSymbol]
+          ch << InvokeVirtual(sym.classSymbol.name, meth.value, "("+args.map(x => typeToJVMType(x.getType)).mkString+")" + typeToJVMType(expr.getType))
         }
 
         case ArrayLength(arr) => {
@@ -260,13 +267,10 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           val label1GuardTrue = ch.getFreshLabel("Guard1true")
           val label2Guard = ch.getFreshLabel("guard2")
 
-          ch << If_ICmpEq(label1GuardTrue) << Goto(label2Guard) << Label(label1GuardTrue) << Ldc(1) << Goto(labelAfter) << Label(label2Guard)
+          ch << Ldc(1) << If_ICmpEq(label1GuardTrue) << Goto(label2Guard) << Label(label1GuardTrue) << Ldc(1) << Goto(labelAfter) << Label(label2Guard)
 
           generateExpressionCode(ch, mt, rhs, env)
-
-          val label2GuardTrue = ch.getFreshLabel("Guard2true")
-
-          ch << If_ICmpEq(label2GuardTrue) << Ldc(0) << Goto(labelAfter) << Label(label2GuardTrue) << Ldc(1) << Label(labelAfter)
+          ch << Label(labelAfter)
         }
 
         case And(lhs, rhs) => {
@@ -276,13 +280,11 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           val label1GuardTrue = ch.getFreshLabel("Guard1true")
           val label2Guard = ch.getFreshLabel("guard2")
 
-          ch << If_ICmpEq(label1GuardTrue) << Ldc(0) << Goto(labelAfter) << Label(label1GuardTrue) << Label(label2Guard)
+          ch << Ldc(1) << If_ICmpEq(label1GuardTrue) << Ldc(0) << Goto(labelAfter) << Label(label1GuardTrue) << Label(label2Guard)
 
           generateExpressionCode(ch, mt, rhs, env)
 
-          val label2GuardTrue = ch.getFreshLabel("Guard2true")
-
-          ch << If_ICmpEq(label2GuardTrue) << Ldc(0) << Goto(labelAfter) << Label(label2GuardTrue) << Ldc(1) << Label(labelAfter)
+          ch << Label(labelAfter)
         }
       }
     }
@@ -304,12 +306,16 @@ object CodeGeneration extends Pipeline[Program, Unit] {
     val mainClass = new ClassFile(prog.main.id.value, None)
 
     mainClass.setSourceFile(sourceName)
+    mainClass.addDefaultConstructor
 
     val handler = mainClass.addMainMethod.codeHandler
+
 
     prog.main.stats foreach {
       generateStatementCode(handler, null, _, Map())
     }
+
+    handler << RETURN
 
     handler.freeze
 
