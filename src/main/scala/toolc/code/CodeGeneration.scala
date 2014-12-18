@@ -17,7 +17,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
 
     def typeToJVMType(tpe: Type): String = {
       tpe match {
-        case TObject(cs) => "L" + cs.name
+        case TObject(cs) => "L" + cs.name + ";"
         case TInt => "I"
         case TString => "Ljava/lang/String"
         case TBool => "Z"
@@ -166,17 +166,18 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         }
 
         case Plus(lhs, rhs) => {
-          generateExpressionCode(ch, mt, lhs, env)
-          generateExpressionCode(ch, mt, rhs, env)
 
           if (lhs.getType == TInt && rhs.getType == TInt) {
+            generateExpressionCode(ch, mt, lhs, env)
+            generateExpressionCode(ch, mt, rhs, env)
             ch << IADD
           } else {
-            ch << InvokeSpecial("java/lang/StringBuilder", "append", typeToJVMType(lhs.getType)+ ";L")
-            
-            // InvokeSpecial StringBuilder//Buffer
-            // InvokeVirtual append
-            // InvokeVirtual toString
+            ch << DefaultNew("java/lang/StringBuilder")
+            generateExpressionCode(ch, mt, lhs, env)
+            ch << InvokeSpecial("java/lang/StringBuilder", "append", typeToJVMType(lhs.getType)+ ";Ljava/lang/StringBuilder")
+            generateExpressionCode(ch, mt, rhs, env)
+            ch << InvokeSpecial("java/lang/StringBuilder", "append", typeToJVMType(rhs.getType)+ ";Ljava/lang/StringBuilder")
+            ch << InvokeSpecial("java/lang/StringBuilder", "toString", ";Ljava/lang/String")
           }
         }
 
@@ -209,10 +210,10 @@ object CodeGeneration extends Pipeline[Program, Unit] {
 
           val labelAfter = ch.getFreshLabel("after")
           val labelTrue = ch.getFreshLabel("true")
-          
+
           ch << If_ICmpLt(labelTrue) << Ldc(0) << Goto(labelAfter) << Label(labelTrue) << Ldc(1) << Label(labelAfter)
         }
-        
+
         case New(tpe) => ch << DefaultNew(typeToJVMType(tpe.getType))
         case Not(bool) => {
           generateExpressionCode(ch, mt, bool, env)
@@ -230,7 +231,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
 
         case MethodCall(obj, meth, args) => {
           generateExpressionCode(ch, mt, obj, env)
-          //TODO: push arguments on the stack
+          args.foreach(x => generateExpressionCode(ch, mt, x, env))
           ch << InvokeVirtual(typeToJVMType(obj.getType), meth.value, "("+args.map(x => typeToJVMType(x.getType)).mkString+")" + typeToJVMType(expr.getType))
         }
 
@@ -245,7 +246,10 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           ch << IALOAD
         }
 
-        case NewIntArray(size) => ch << NewArray("I")
+        case NewIntArray(size) => {
+          generateExpressionCode(ch, mt, size, env)
+          ch << NewArray("I")
+        }
 
         case id : Identifier => pushVar(id.getSymbol.asInstanceOf[VariableSymbol], mt.getSymbol , env, ch)
 
@@ -257,14 +261,14 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           val label2Guard = ch.getFreshLabel("guard2")
 
           ch << If_ICmpEq(label1GuardTrue) << Goto(label2Guard) << Label(label1GuardTrue) << Ldc(1) << Goto(labelAfter) << Label(label2Guard)
-          
-          generateExpressionCode(ch, mt, rhs, env) 
-          
+
+          generateExpressionCode(ch, mt, rhs, env)
+
           val label2GuardTrue = ch.getFreshLabel("Guard2true")
-          
+
           ch << If_ICmpEq(label2GuardTrue) << Ldc(0) << Goto(labelAfter) << Label(label2GuardTrue) << Ldc(1) << Label(labelAfter)
         }
-        
+
         case And(lhs, rhs) => {
           generateExpressionCode(ch, mt, lhs, env)
 
@@ -273,20 +277,14 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           val label2Guard = ch.getFreshLabel("guard2")
 
           ch << If_ICmpEq(label1GuardTrue) << Ldc(0) << Goto(labelAfter) << Label(label1GuardTrue) << Label(label2Guard)
-          
-          generateExpressionCode(ch, mt, rhs, env) 
-          
+
+          generateExpressionCode(ch, mt, rhs, env)
+
           val label2GuardTrue = ch.getFreshLabel("Guard2true")
-          
+
           ch << If_ICmpEq(label2GuardTrue) << Ldc(0) << Goto(labelAfter) << Label(label2GuardTrue) << Ldc(1) << Label(labelAfter)
         }
       }
-    }
-
-    def generateMainMethodCode(ch: CodeHandler, stmts: List[StatTree], cname: String): Unit = {
-
-      // TODO: Emit code
-      ch.freeze
     }
 
     val outDir = ctx.outDir.map(_.getPath + "/").getOrElse("./")
@@ -300,13 +298,21 @@ object CodeGeneration extends Pipeline[Program, Unit] {
 
     // output code
     prog.classes foreach {
-      ct => generateClassFile(sourceName, ct, outDir)
+      ct => generateClassFile(sourceName, ct, outDir + "/" + ct.id.value + ".class")
     }
 
-    val handler = prog.main.addMethod(typeToJVMType(retTpe), meth.id.value, argsString).codeHandler
+    val mainClass = new ClassFile(prog.main.id.value, None)
 
-    generateMethodCode(handler, meth)
-    generateMethodCode(ch, prog.main)
+    mainClass.setSourceFile(sourceName)
+
+    val handler = mainClass.addMainMethod.codeHandler
+
+    prog.main.stats foreach {
+      generateStatementCode(handler, null, _, Map())
+    }
+
+    handler.freeze
+
+    mainClass.writeToFile(outDir + "/" + prog.main.id.value + ".class")
   }
-
 }
