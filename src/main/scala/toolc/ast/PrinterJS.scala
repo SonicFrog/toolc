@@ -3,6 +3,16 @@ package toolc.ast
 import Trees._
 
 object PrinterJS {
+  def recursiveVarLookUp(dcl: ClassDecl): (List[String], List[MethodDecl]) = {
+    def helper(dcl: ClassDecl, vars : List[VarDecl], meth : List[MethodDecl]) : (List[String], List[MethodDecl]) = {
+      dcl.parent match {
+        case None => (vars.map(_.id.value), meth)
+        case Some(parent) => helper(???, List() distinct, meth )
+      }
+    }
+    helper(dcl, dcl.vars, dcl.methods)
+  }
+  
   def apply(t: Tree): String = {
     t match {
       case Program(main, classes) => List(classes.map(this(_)).mkString("\n"), this(main)).mkString("\n")
@@ -10,14 +20,16 @@ object PrinterJS {
       case dcl : MainObject => dcl.stats.map(this(_)).mkString("\n")
 
       case dcl : ClassDecl => 
-        "var " + this(dcl.id) + " = {" +
-        List(dcl.vars.map(x => this(x.id) + ":null"),
-        dcl.methods.map(x => this(x))).flatten.mkString(", ") + "}"
+        val clName = this(dcl.id)
+        dcl.parent.flatMap(parent => Some(clName + ".prototype = Object.create(" + this(parent) + ".prototype);\n")).getOrElse("") +
+        "function " + clName + "() {" +
+        dcl.vars.map(vari => "this." + this(vari.id) + " = null;\n").mkString + "}\n" +
+        dcl.methods.map(meth => clName + ".prototype." + this(meth)).mkString
 
       case dcl : MethodDecl =>
-        this(dcl.id) + ":function(" + dcl.args.map(this(_)).mkString(", ") +") { \n" +
+        this(dcl.id) + " = function(" + dcl.args.map(this(_)).mkString(", ") +") { \n" +
         dcl.vars.map(this(_)).mkString("\n") + dcl.stats.map(this(_)).mkString("\n") +
-        "return " + this(dcl.retExpr) + ";\n}"
+        "return " + this(dcl.retExpr) + ";\n}\n"
 
       case dcl : VarDecl => "var " + this(dcl.id) + ";"
       case Formal(tpe, id) => this(id)
@@ -55,7 +67,7 @@ object PrinterJS {
       case id : Identifier => id.value
       case ths : This => "this"
       case NewIntArray(size) => "new Array("+ this(size) +")"
-      case New(tpe) => this(tpe)
+      case New(tpe) => "new " + this(tpe) + "()"
       case Not(expr) => "!" + this(expr)
     }
   }
