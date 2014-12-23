@@ -22,6 +22,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         case TString => "Ljava/lang/String;"
         case TBool => "Z"
         case TIntArray => "[I"
+        case _ => sys.error("Internal compiler error!")
       }
     }
 
