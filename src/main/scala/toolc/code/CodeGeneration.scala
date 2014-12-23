@@ -273,7 +273,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           args.foreach(x => generateExpressionCode(ch, mt, x, env))
           val sym = meth.getSymbol.asInstanceOf[MethodSymbol]
 
-          ch << InvokeVirtual(sym.classSymbol.name, meth.value, "("+args.map(x => typeToJVMType(x.getType)).mkString+")" + typeToJVMType(expr.getType))
+          ch << InvokeVirtual(sym.classSymbol.name, meth.value, "("+sym.argList.map(x => typeToJVMType(x.getType)).mkString+")" + typeToJVMType(expr.getType))
         }
 
         case ArrayLength(arr) => {
