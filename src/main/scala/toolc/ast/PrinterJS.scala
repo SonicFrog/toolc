@@ -5,13 +5,8 @@ import Trees._
 import analyzer.Symbols._
 
 object PrinterJS {
-  def apply(t: Tree) {
-    println("apply found")
-    apply(t, None)
-  }
   
   def apply(t: Tree, methodScope: Option[Set[String]]): String = {
-    println("nested apply found")
     t match {
       case Program(main, classes) => List(classes.map(this(_, None)).mkString("\n"), this(main, None)).mkString("\n")
 

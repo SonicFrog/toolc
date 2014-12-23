@@ -2,6 +2,7 @@ package toolc
 
 import utils._
 import java.io.File
+import java.io.PrintWriter
 
 import lexer._
 import ast._
@@ -50,6 +51,18 @@ object Main {
 
     ctx.reporter.terminateIfErrors
 
-    println(PrinterJS(result, None))
+    generateJSFile(ctx.outDir, result.main.id.value , PrinterJS(result, None))
+  }
+  
+  def generateJSFile(outDir : Option[File], fileName : String, codeContent : String) {
+    val dirName = outDir.map(_.getPath + "/").getOrElse("./")
+    val f = new File(dirName + fileName + ".js")
+    f.delete()
+    f.createNewFile();
+    
+    val pw = new PrintWriter(f)
+    
+    pw.write(codeContent)
+    pw.close
   }
 }
