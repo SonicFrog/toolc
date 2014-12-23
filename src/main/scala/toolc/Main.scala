@@ -50,6 +50,6 @@ object Main {
 
     ctx.reporter.terminateIfErrors
 
-    println(PrinterJS(result))
+    println(PrinterJS(result, None))
   }
 }
