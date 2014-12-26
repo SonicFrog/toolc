@@ -82,6 +82,34 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         id.setPos(pos)
       }
 
+      case IO => {
+        val pos = currentToken
+        readToken
+
+        eat(DOT)
+
+        currentToken.kind match {
+          case IDKIND => {
+            val value = currentToken.asInstanceOf[ID].value
+            readToken
+            eat(LPAREN)
+            val arg = expr
+            eat(RPAREN)
+            value match {
+              case "readString" => ReadString(arg)
+              case "readDouble" => ReadDouble(arg)
+              case "readInteger" => ReadInteger(arg)
+              case "writeLine" => WriteLine(arg)
+              case "showPopup" => ShowPopup(arg)
+
+              case _ => fatal("IO object has no " + value + " method!")
+            }
+
+          }
+          case _ => expected(IDKIND)
+        }
+      }
+
       case NEW => {
         val pos = currentToken
         readToken
@@ -232,7 +260,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         new Not(parseBracket).setPos(currentToken)
       } else parseBracket
     }
-    
+
     def parseBracket : ExprTree = {
       var lhs = parseDot
 
@@ -259,6 +287,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
             val args : ListBuffer[ExprTree] = new ListBuffer
             val methodName : Identifier =
               new Identifier(currentToken.asInstanceOf[ID].value)
+
             readToken
             eat(LPAREN)
 

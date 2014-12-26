@@ -44,6 +44,13 @@ object Trees {
   case class IntLit(value: Int) extends ExprTree
   case class StringLit(value: String) extends ExprTree
 
+  //IO specific method calls
+  case class ReadString(message : ExprTree) extends ExprTree
+  case class ReadDouble(message : ExprTree) extends ExprTree
+  case class ReadInteger(message : ExprTree) extends ExprTree
+  case class WriteLine(message : ExprTree) extends ExprTree
+  case class ShowPopup(message : ExprTree) extends ExprTree
+
   case class True() extends ExprTree
   case class False() extends ExprTree
   case class Identifier(value: String) extends TypeTree with ExprTree with Symbolic[Symbol] {
