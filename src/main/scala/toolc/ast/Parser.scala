@@ -99,12 +99,9 @@ object Parser extends Pipeline[Iterator[Token], Program] {
               case "readString" => ReadString(arg)
               case "readDouble" => ReadDouble(arg)
               case "readInteger" => ReadInteger(arg)
-              case "writeLine" => WriteLine(arg)
-              case "showPopup" => ShowPopup(arg)
 
               case _ => fatal("IO object has no " + value + " method!")
             }
-
           }
           case _ => expected(IDKIND)
         }
@@ -113,29 +110,31 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       case NEW => {
         val pos = currentToken
         readToken
+
+        val inner = currentToken.kind match {
+          case IDKIND => new Identifier(currentToken.asInstanceOf[ID].value)
+          case INT => IntType()
+          case DOUBLE => DoubleType()
+          case STRING => StringType()
+          case BOOLEAN => BooleanType()
+          case _ => expected(IDKIND, INT, DOUBLE, STRING, BOOLEAN)
+        }
+
+        readToken
+
         currentToken.kind match {
-          case IDKIND => {
-            val id = new Identifier(currentToken.asInstanceOf[ID].value)
+          case LBRACKET => {
             readToken
-            eat(LPAREN)
-            eat(RPAREN)
-            new New(id).setPos(pos)
+            val size = expr
+            eat(RBRACKET)
+            NewArray(size, inner).setPos(pos)
           }
-
-          case INT => {
-            readToken
-            currentToken.kind match {
-              case LBRACKET => {
-                eat(LBRACKET)
-                val size = expr
-                eat(RBRACKET)
-                new NewIntArray(size).setPos(currentToken)
-              }
-              case _ => expected(LBRACKET)
-            }
+          case LPAREN => inner match {
+            //TODO: implement parametrized constructors
+            case id : Identifier => eat(RPAREN); New(id).setPos(pos)
+            case _ => expected(IDKIND)
           }
-
-          case _ => expected(IDKIND, INT)
+          case _ => expected(LBRACKET, LPAREN)
         }
       }
 
@@ -338,25 +337,29 @@ object Parser extends Pipeline[Iterator[Token], Program] {
 
     def parseType: TypeTree = {
       val pos = currentToken
+      var tpe : TypeTree = null
+
       currentToken.kind match {
         case IDKIND => {
           val id = new Identifier(currentToken.asInstanceOf[ID].value)
           readToken
           id.setPos(pos)
         }
-        case INT =>
-          readToken
-          currentToken.kind match {
-            case LBRACKET =>
-              eat(LBRACKET); eat(RBRACKET); IntArrayType().setPos(pos)
-            case _ => IntType().setPos(pos)
-          }
+
+        case INT => eat(INT); IntType().setPos(pos)
         case STRING => eat(STRING); StringType().setPos(pos)
         case BOOLEAN => eat(BOOLEAN); BooleanType().setPos(pos)
+        case DOUBLE => eat(DOUBLE); DoubleType().setPos(pos)
 
         case _ => expected(IDKIND, STRING, INT, BOOLEAN)
-
       }
+
+      while (currentToken.kind == LBRACKET) {
+        eat(LBRACKET); eat(RBRACKET);
+        tpe = ArrayType(tpe).setPos(tpe)
+      }
+
+      tpe
     }
 
     def parseClass : ClassDecl = {
@@ -520,11 +523,24 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     def statmt: StatTree = {
       val pos = currentToken
       currentToken.kind match {
-        case PRINTLN => {//Println statement
+        case IO => { //IO statements
           readToken
-          val toPrint = findExprInParenthesis
-          eat(SEMICOLON)
-          Println(toPrint).setPos(pos)
+          eat(DOT)
+
+          val method = currentToken match {
+            case id : ID => id.value
+            case _ => expected(IDKIND)
+          }
+
+          readToken
+
+          val msg = findExprInParenthesis
+
+          method match {
+            case "writeLine" => WriteLine(expr)
+            case "showPopup" => ShowPopup(expr)
+            case _ => fatal("IO." + method + " is not a statement", currentToken)
+          }
         }
 
         case WHILE => { //While statement

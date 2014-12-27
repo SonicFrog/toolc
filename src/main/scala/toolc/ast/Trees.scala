@@ -16,16 +16,18 @@ object Trees {
   sealed case class Formal(tpe: TypeTree, id: Identifier) extends Tree with Symbolic[VariableSymbol]
 
   sealed trait TypeTree extends Tree with Typed
-  case class IntArrayType() extends TypeTree
   case class IntType() extends TypeTree
   case class BooleanType() extends TypeTree
   case class StringType() extends TypeTree
+  case class DoubleType() extends TypeTree
+  case class ArrayType(tpe : TypeTree) extends TypeTree
 
   sealed trait StatTree extends Tree
   case class Block(stats: List[StatTree]) extends StatTree
   case class If(expr: ExprTree, thn: StatTree, els: Option[StatTree]) extends StatTree
   case class While(expr: ExprTree, stat: StatTree) extends StatTree
-  case class Println(expr: ExprTree) extends StatTree
+  case class WriteLine(message : ExprTree) extends StatTree
+  case class ShowPopup(message : ExprTree) extends StatTree
   case class Assign(id: Identifier, expr: ExprTree) extends StatTree
   case class ArrayAssign(id: Identifier, index: ExprTree, expr: ExprTree) extends StatTree
 
@@ -48,8 +50,6 @@ object Trees {
   case class ReadString(message : ExprTree) extends ExprTree
   case class ReadDouble(message : ExprTree) extends ExprTree
   case class ReadInteger(message : ExprTree) extends ExprTree
-  case class WriteLine(message : ExprTree) extends ExprTree
-  case class ShowPopup(message : ExprTree) extends ExprTree
 
   case class True() extends ExprTree
   case class False() extends ExprTree
@@ -59,7 +59,7 @@ object Trees {
   case class This() extends ExprTree with Symbolic[ClassSymbol] {
     override def getType = getSymbol.getType
   }
-  case class NewIntArray(size: ExprTree) extends ExprTree
+  case class NewArray(size : ExprTree, tpe : TypeTree) extends ExprTree
   case class New(tpe: Identifier) extends ExprTree
   case class Not(expr: ExprTree) extends ExprTree
 }
