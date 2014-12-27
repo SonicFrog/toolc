@@ -74,6 +74,8 @@ object Tokens {
 
   case object IO extends TokenKind          // IO object
 
+  case object DOUBLE extends TokenKind      // double
+
   // Identifiers
   class ID(val value: String) extends Token(IDKIND) {
     override def toString = "ID("+value+")"
