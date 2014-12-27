@@ -5,14 +5,14 @@ import Trees._
 import analyzer.Symbols._
 
 object PrinterJS {
-  
+
   def apply(t: Tree, methodScope: Option[Set[String]]): String = {
     t match {
       case Program(main, classes) => List(classes.map(this(_, None)).mkString("\n"), this(main, None)).mkString("\n")
 
       case dcl : MainObject => dcl.stats.map(this(_, None)).mkString("\n")
 
-      case dcl : ClassDecl => 
+      case dcl : ClassDecl =>
         val clName = this(dcl.id, None)
         dcl.parent.flatMap(parent => Some(clName + ".prototype = Object.create(" + this(parent, None) + ".prototype);\n")).getOrElse("") +
         "function " + clName + "() {" +
@@ -25,11 +25,11 @@ object PrinterJS {
         dcl.vars.map(this(_, None)).mkString("\n") + dcl.stats.map(this(_, methScope)).mkString("\n") +
         "return " + this(dcl.retExpr, methScope) + ";\n}\n"
       }
-      
+
       case dcl : VarDecl => "var " + this(dcl.id, methodScope) + ";"
       case Formal(tpe, id) => this(id, methodScope)
 
-      case IntArrayType() | IntType() | BooleanType() | StringType() => "" //nothing, types doesn't matter in JS.
+      case ArrayType(_) | IntType() | DoubleType() | BooleanType() | StringType() => "" //nothing, types doesn't matter in JS.
 
       case Block(stats) => " {\n" + stats.map(this(_, methodScope)).mkString("\n") + "}"
       case If(expr, thn, els) => "if (" + this(expr, methodScope) + ")" + this(thn, methodScope) +
@@ -70,6 +70,12 @@ object PrinterJS {
       case NewIntArray(size) => "new Array("+ this(size, methodScope) +")"
       case New(tpe) => "new " + this(tpe, None) + "()"
       case Not(expr) => "!" + this(expr, methodScope)
+
+      case ReadString(msg) => "prompt(" + this(msg, methodScope) + ")"
+      case ReadInteger(msg) => "prompt(" + this(msg, methodScope) + ")"
+      case ReadDouble(msg) => "prompt(" + this(msg, methodScope) + ")"
+      case WriteLine(msg) => "document.write(" + this(msg, methodScope) + ")"
+      case ShowPopup(msg) => "window.alert(" + this(msg, methodScope) + ")"
     }
   }
 }
