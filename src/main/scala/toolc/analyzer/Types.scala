@@ -43,6 +43,14 @@ object Types {
     override def toString = "Bool"
   }
 
+  case object TDouble extends Type {
+    override def isSubTypeOf(tpe: Type) : Boolean = tpe match {
+      case TDouble => true
+      case _ => false
+    }
+    override def toString = "Double"
+  }
+
   case object TIntArray extends Type {
     override def isSubTypeOf(tpe: Type): Boolean = tpe match {
       case TIntArray => true
@@ -59,7 +67,12 @@ object Types {
     override def toString = "String"
   }
 
-  // TODO: Complete by creating necessary types
+  case class TArray(innerType : Type) extends Type {
+    override def isSubTypeOf(tpe : Type) : Boolean = tpe match {
+      case TArray(otherInner) => otherInner.isSubTypeOf(innerType)
+      case _ => false
+    }
+  }
 
   case class TObject(classSymbol: ClassSymbol) extends Type {
     override def isSubTypeOf(tpe: Type): Boolean = tpe match {
