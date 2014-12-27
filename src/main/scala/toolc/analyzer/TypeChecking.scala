@@ -86,7 +86,11 @@ object TypeChecking extends Pipeline[Program, Program] {
         case ths: This => ths.getType
         case New(tpe) => tpe.getType
         case Not(expr) => tcExpr(expr, TBool)
-        case NewIntArray(size) => tcExpr(size, TInt); TIntArray
+        case NewArray(size, tpe) => tcExpr(size, TInt); TArray(tpe.getType)
+
+        case ReadString(msg) => tcExpr(msg, TString); TString
+        case ReadDouble(msg) => tcExpr(msg, TString); TDouble
+        case ReadInteger(msg) => tcExpr(msg, TString); TInt
       }
 
       expr.setType(tpe) //Assign type computed above to current expression
