@@ -27,10 +27,11 @@ object Printer {
       case dcl : VarDecl => "var " + this(dcl.id) + " : " + this(dcl.tpe) + ";"
       case Formal(tpe, id) => this(id) + " : " + this(tpe)
 
-      case IntArrayType() => "Int[]"
+      case ArrayType(inner) => this(inner) + "[]"
       case IntType() => "Int"
       case BooleanType() => "Bool"
       case StringType() => "String"
+      case DoubleType() => "Double"
 
       case Block(stats) => "{" + stats.map(this(_)).mkString("\n") + "}"
       case If(expr, thn, els) => "if (" + this(expr) + ")" + this(thn) +
@@ -65,6 +66,12 @@ object Printer {
       case NewIntArray(size) => "new Int["+ this(size) +"]"
       case New(tpe) => "new " + this(tpe) + "()"
       case Not(expr) => "!" + this(expr)
+
+      case ReadString(msg) => "IO.readString(" + this(msg) + ")"
+      case ShowPopup(msg) => "IO.showPopup(" + this(msg) + ")"
+      case ReadDouble(msg) => "IO.readDouble(" + this(msg) + ")"
+      case ReadInteger(msg) => "IO.readDouble(" + this(msg) + ")"
+      case WriteLine(msg) => "IO.writeLine(" + this(msg) + ")"
     }
   }
 }
