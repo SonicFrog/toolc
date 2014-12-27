@@ -16,8 +16,9 @@ object NameAnalysis extends Pipeline[Program, Program] {
       tpe match {
         case _ : IntType => Types.TInt
         case _ : BooleanType => Types.TBool
-        case _ : IntArrayType => Types.TIntArray
         case _ : StringType => Types.TString
+        case _ : DoubleType => Types.TDouble
+        case ArrayType(innerType) => Types.TArray(fetchType(innerType))
         case id : Identifier => globalScope.lookupClass(id.value) match {
           case None => Types.TError
           case Some(cs) => new Types.TObject(cs)
@@ -272,7 +273,8 @@ object NameAnalysis extends Pipeline[Program, Program] {
           }
         case While(expr, stat) => handleExprTree(expr, sym)
           handleStatTree(stat, sym)
-        case Println(expr) => handleExprTree(expr, sym)
+        case WriteLine(expr) => handleExprTree(expr, sym)
+        case ShowPopup(expr) => handleExprTree(expr, sym)
         case Assign(id, expr) => attachVarSymbol(id, sym)
           handleExprTree(expr, sym)
         case ArrayAssign(id,index,expr) => attachVarSymbol(id, sym)
@@ -309,7 +311,17 @@ object NameAnalysis extends Pipeline[Program, Program] {
 
         case id : Identifier => attachVarSymbol(id, sym)
         case ths : This => ths.setSymbol(sym.classSymbol)
-        case NewIntArray(size) => handleExprTree(size, sym)
+
+        case NewArray(size, tpe) => {
+          handleExprTree(size, sym)
+          tpe match {
+            case id : Identifier => {
+              id.setSymbol(globalScope.lookupClass(id.value).getOrElse(fatal(id.value + " undeclared", tpe)))
+            }
+            case ArrayType(inner) => ??? //Multi-dimension
+          }
+        }
+
         case New(tpe) => tpe.setSymbol(globalScope.lookupClass(tpe.value).getOrElse(fatal(tpe.value + " not declared", tpe)))
         case Not(expr) => handleExprTree(expr, sym)
         case _ => //TODO
