@@ -75,6 +75,9 @@ object Tokens {
   case object IO extends TokenKind          // IO object
 
   case object DOUBLE extends TokenKind      // double
+  case object DOUBLELITKIND extends TokenKind {
+    override def toString = "double literal"
+  }
 
   // Identifiers
   class ID(val value: String) extends Token(IDKIND) {
@@ -84,6 +87,11 @@ object Tokens {
   // Integer literals
   class INTLIT(val value: Int) extends Token(INTLITKIND) {
     override def toString = "INT("+value+")"
+  }
+
+  // Double literals
+  class DOUBLELIT(val value : Double) extends Token(DOUBLELITKIND) {
+    override def toString = "DOUBLE(" + value + ")"
   }
 
   // String literals

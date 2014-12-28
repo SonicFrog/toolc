@@ -43,7 +43,7 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
         "Int" -> new Token(INT), "var" -> new Token(VAR), "main" -> new Token(MAIN), "def" -> new Token(DEF),
         "false" -> new Token(FALSE), "true" -> new Token(TRUE), "this" -> new Token(THIS),
         "Bool" -> new Token(BOOLEAN), "object" -> new Token(OBJECT), "extends" -> new Token(EXTENDS),
-        "length" -> new Token(LENGTH), "IO" -> new Token(IO))
+        "length" -> new Token(LENGTH), "IO" -> new Token(IO), "Double" -> new Token(DOUBLE))
 
       var token: Token = null
 
@@ -131,7 +131,18 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
               keywordToToken.getOrElse(string, new ID(string))
             }
 
-            case numbers(d) => new INTLIT((d :: takeWhile(_.isDigit).toList).mkString.toInt)
+            case numbers(d) => {
+              val start = d :: takeWhile(_.isDigit).toList
+              if (sourceIterator.head == '.') { //Double literal
+                sourceIterator.next
+                val end = takeWhile(_.isDigit).toList
+
+                val value = (start ++ ('.' :: end)).mkString.toDouble
+                new DOUBLELIT(value)
+              } else { //Integer literal
+                new INTLIT(start.mkString.toInt)
+              }
+            }
 
             case '"' => {
               val str = source.takeWhile(head => head != '\"' && head != '\n').mkString
