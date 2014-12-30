@@ -33,13 +33,13 @@ class Evaluator(ctx: Context, prog: Program) {
     case While(expr, stat) => while (evalExpr(ectx, expr).asBool) evalStatement(ectx, stat)
     
     //Là pas trop technique on print simplement la valeur de l'expression
-    case Println(expr) => evalExpr(ectx, expr) match {
-      case IntValue(i) => println(i)
-      case BoolValue(b) => println(b)
-      case StringValue(s) => println(s)
-      case ObjectValue(o) => println(o.id.value)
-      case ArrayValue(cnt, size) => println("ArrayValue" + cnt)
-    }
+//    case Println(expr) => evalExpr(ectx, expr) match {
+//      case IntValue(i) => println(i)
+//      case BoolValue(b) => println(b)
+//      case StringValue(s) => println(s)
+//      case ObjectValue(o) => println(o.id.value)
+//      case ArrayValue(cnt, size) => println("ArrayValue" + cnt)
+//    }
     
     //We assume that the parser does not let the user assign to a non declared variable and so we declare
     //it ourselves
@@ -142,7 +142,7 @@ class Evaluator(ctx: Context, prog: Program) {
       case _ => fatal("Can't use this outside of method call")
     }
     
-    case NewIntArray(size) => ArrayValue(new Array[Int](evalExpr(ectx, size).asInt), evalExpr(ectx, size).asInt)
+    //case NewIntArray(size) => ArrayValue(new Array[Int](evalExpr(ectx, size).asInt), evalExpr(ectx, size).asInt)
   }
 
   // Define the scope of evaluation, with methods to access/declare/set local variables(or arguments)

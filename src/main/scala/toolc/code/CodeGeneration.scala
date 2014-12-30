@@ -132,11 +132,11 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           ch << Goto(begin) << Label(end)
         }
 
-        case Println(expr) => {
-          ch << GetStatic("java/lang/System", "out", "Ljava/io/PrintStream;")
-          generateExpressionCode(ch, mt, expr, env)
-          ch << InvokeVirtual("java/io/PrintStream", "println", "(" + typeToJVMType(expr.getType) + ")V")
-        }
+//        case Println(expr) => {
+//          ch << GetStatic("java/lang/System", "out", "Ljava/io/PrintStream;")
+//          generateExpressionCode(ch, mt, expr, env)
+//          ch << InvokeVirtual("java/io/PrintStream", "println", "(" + typeToJVMType(expr.getType) + ")V")
+//        }
 
         case Assign(id, expr) => {
 
@@ -288,10 +288,10 @@ object CodeGeneration extends Pipeline[Program, Unit] {
           ch << IALOAD
         }
 
-        case NewIntArray(size) => {
-          generateExpressionCode(ch, mt, size, env)
-          ch << NewArray(10) // 10 sets type to Int
-        }
+//        case NewArray(size) => {
+//          generateExpressionCode(ch, mt, size, env)
+//          ch << NewArray(10) // 10 sets type to Int
+//        }
 
         case id : Identifier => pushVar(id.getSymbol.asInstanceOf[VariableSymbol], mt.getSymbol , env, ch)
 

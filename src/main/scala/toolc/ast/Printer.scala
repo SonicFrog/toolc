@@ -37,7 +37,7 @@ object Printer {
       case If(expr, thn, els) => "if (" + this(expr) + ")" + this(thn) +
         els.flatMap(x => Some(" else " + this(x))).getOrElse("")
       case While(expr, stats) => "while(" + this(expr) + ")" + this(stats)
-      case Println(expr) => "println("+ this(expr) + ");"
+      //case Println(expr) => "println("+ this(expr) + ");"
       case Assign(id, expr) => this(id) + " = " + this(expr) + ";"
       case ArrayAssign(id, index, expr) =>
         this(id) + "[" + this(index) + "] = " + this(expr) +";"
@@ -63,7 +63,7 @@ object Printer {
       case False() => "false"
       case id : Identifier => id.value + "#" + id.getSymbol.id // + "/" + id.getType
       case ths : This => "this#" + ths.getSymbol.id  // + "/" + ths.getType
-      case NewIntArray(size) => "new Int["+ this(size) +"]"
+      //case NewIntArray(size) => "new Int["+ this(size) +"]"
       case New(tpe) => "new " + this(tpe) + "()"
       case Not(expr) => "!" + this(expr)
 

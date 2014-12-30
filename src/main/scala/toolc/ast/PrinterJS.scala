@@ -35,7 +35,7 @@ object PrinterJS {
       case If(expr, thn, els) => "if (" + this(expr, methodScope) + ")" + this(thn, methodScope) +
         els.flatMap(x => Some(" else " + this(x, methodScope))).getOrElse("")
       case While(expr, stats) => "while(" + this(expr, methodScope) + ")" + this(stats, methodScope)
-      case Println(expr) => "console.log("+ this(expr, methodScope) + ");"
+      //case Println(expr) => "console.log("+ this(expr, methodScope) + ");"
       case Assign(id, expr) => this(id, methodScope) + " = " + this(expr, methodScope) + ";"
       case ArrayAssign(id, index, expr) =>
         this(id, methodScope) + "[" + this(index, methodScope) + "] = " + this(expr, methodScope) +";"
@@ -67,7 +67,7 @@ object PrinterJS {
         }
       }
       case ths : This => "this"
-      case NewIntArray(size) => "new Array("+ this(size, methodScope) +")"
+      case NewArray(size, tpe) => "new Array("+ this(size, methodScope) +")"
       case New(tpe) => "new " + this(tpe, None) + "()"
       case Not(expr) => "!" + this(expr, methodScope)
 
