@@ -38,7 +38,7 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
       val letters = "([a-zA-Z])".r
 
       val keywordToToken = Map("if" -> new Token(IF), "else" -> new Token(ELSE), "new" -> new Token(NEW),
-        "while" -> new Token(WHILE), "class" -> new Token(CLASS), "println" -> new Token(PRINTLN),
+        "while" -> new Token(WHILE), "class" -> new Token(CLASS),
         "return" -> new Token(RETURN), "String" -> new Token(STRING), "Unit" -> new Token(UNIT),
         "Int" -> new Token(INT), "var" -> new Token(VAR), "main" -> new Token(MAIN), "def" -> new Token(DEF),
         "false" -> new Token(FALSE), "true" -> new Token(TRUE), "this" -> new Token(THIS),

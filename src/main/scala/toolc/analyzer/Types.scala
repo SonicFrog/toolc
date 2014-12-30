@@ -29,7 +29,7 @@ object Types {
 
   case object TInt extends Type {
     override def isSubTypeOf(tpe: Type): Boolean = tpe match {
-      case TInt => true
+      case TInt | TDouble => true
       case _ => false
     }
     override def toString = "Int"
@@ -72,6 +72,7 @@ object Types {
       case TArray(otherInner) => otherInner.isSubTypeOf(innerType)
       case _ => false
     }
+    override def toString = innerType.toString + "[]"
   }
 
   case class TObject(classSymbol: ClassSymbol) extends Type {

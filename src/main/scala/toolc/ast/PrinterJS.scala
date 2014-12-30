@@ -22,8 +22,8 @@ object PrinterJS {
       case dcl : MethodDecl => {
         val methScope = Some((dcl.vars.map (v => v.id.value) toSet) ++: (dcl.args.map (v => v.id.value) toSet))
         this(dcl.id, None) + " = function(" + dcl.args.map(this(_, None)).mkString(", ") +") { \n" +
-        dcl.vars.map(this(_, None)).mkString("\n") + dcl.stats.map(this(_, methScope)).mkString("\n") +
-        "return " + this(dcl.retExpr, methScope) + ";\n}\n"
+        List(dcl.vars.map(this(_, None)).toList,dcl.stats.map(this(_, methScope)).toList,
+        List("return " + this(dcl.retExpr, methScope) + ";")).flatten.mkString("\n") + "\n}\n"
       }
 
       case dcl : VarDecl => "var " + this(dcl.id, methodScope) + ";"
@@ -56,6 +56,7 @@ object PrinterJS {
 
       case IntLit(value) => value.toString
       case StringLit(value) => '"' + value + '"'
+      case DoubleLit(value) => value.toString
 
       case True() => "true"
       case False() => "false"
@@ -72,10 +73,10 @@ object PrinterJS {
       case Not(expr) => "!" + this(expr, methodScope)
 
       case ReadString(msg) => "prompt(" + this(msg, methodScope) + ")"
-      case ReadInteger(msg) => "prompt(" + this(msg, methodScope) + ")"
-      case ReadDouble(msg) => "prompt(" + this(msg, methodScope) + ")"
-      case WriteLine(msg) => "document.write(" + this(msg, methodScope) + ")"
-      case ShowPopup(msg) => "window.alert(" + this(msg, methodScope) + ")"
+      case ReadInteger(msg) => "parseInt(prompt(" + this(msg, methodScope) + "))"
+      case ReadDouble(msg) => "parseFloat(prompt(" + this(msg, methodScope) + "))"
+      case WriteLine(msg) => "document.write(" + this(msg, methodScope) + ");"
+      case ShowPopup(msg) => "window.alert(" + this(msg, methodScope) + ");"
     }
   }
 }

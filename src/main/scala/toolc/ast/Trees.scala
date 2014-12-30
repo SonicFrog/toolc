@@ -47,6 +47,7 @@ object Trees {
   case class MethodCall(obj: ExprTree, meth: Identifier, args: List[ExprTree]) extends ExprTree
   case class IntLit(value: Int) extends ExprTree
   case class StringLit(value: String) extends ExprTree
+  case class DoubleLit(value: Double) extends ExprTree
 
   //IO specific method calls
   case class ReadString(message : ExprTree) extends ExprTree

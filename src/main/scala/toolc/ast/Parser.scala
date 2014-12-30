@@ -27,6 +27,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
 
     // ''Eats'' the expected token, or terminates with an error.
     def eat(kind: TokenKind): Unit = {
+      println(kind.toString())
       if (currentToken.kind == kind) {
         readToken
       } else {
@@ -55,6 +56,13 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       case INTLITKIND => {
         val pos = currentToken
         val literal = new IntLit(currentToken.asInstanceOf[INTLIT].value)
+        readToken
+        literal.setPos(pos)
+      }
+      
+      case DOUBLELITKIND => {
+        val pos = currentToken
+        val literal = new DoubleLit(currentToken.asInstanceOf[DOUBLELIT].value)
         readToken
         literal.setPos(pos)
       }
@@ -129,7 +137,9 @@ object Parser extends Pipeline[Iterator[Token], Program] {
             eat(RBRACKET)
             NewArray(size, inner).setPos(pos)
           }
-          case LPAREN => inner match {
+          case LPAREN => 
+            readToken
+            inner match {
             //TODO: implement parametrized constructors
             case id : Identifier => eat(RPAREN); New(id).setPos(pos)
             case _ => expected(IDKIND)
@@ -339,7 +349,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       val pos = currentToken
       var tpe : TypeTree = null
 
-      currentToken.kind match {
+      tpe = currentToken.kind match {
         case IDKIND => {
           val id = new Identifier(currentToken.asInstanceOf[ID].value)
           readToken
@@ -534,11 +544,14 @@ object Parser extends Pipeline[Iterator[Token], Program] {
 
           readToken
 
-          val msg = findExprInParenthesis
+          eat(LPAREN)
+          val msg = expr
+          eat(RPAREN)
+          eat(SEMICOLON)
 
           method match {
-            case "writeLine" => WriteLine(expr)
-            case "showPopup" => ShowPopup(expr)
+            case "writeLine" => WriteLine(msg)
+            case "showPopup" => ShowPopup(msg)
             case _ => fatal("IO." + method + " is not a statement", currentToken)
           }
         }

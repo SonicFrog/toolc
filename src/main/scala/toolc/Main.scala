@@ -51,10 +51,11 @@ object Main {
 
     ctx.reporter.terminateIfErrors
 
-    generateJSFile(ctx.outDir, result.main.id.value , PrinterJS(result, None))
+    val scriptJS = generateJSFile(ctx.outDir, result.main.id.value , PrinterJS(result, None))
+    generateHTMLFromJS(ctx.outDir, "test_tool", scriptJS)
   }
   
-  def generateJSFile(outDir : Option[File], fileName : String, codeContent : String) {
+  def generateJSFile(outDir : Option[File], fileName : String, codeContent : String) : File = {
     val dirName = outDir.map(_.getPath + "/").getOrElse("./")
     val f = new File(dirName + fileName + ".js")
     f.delete()
@@ -63,6 +64,20 @@ object Main {
     val pw = new PrintWriter(f)
     
     pw.write(codeContent)
+    pw.close
+    
+    f
+  }
+  
+  def generateHTMLFromJS(outDir: Option[File], fileName : String, script: File) {
+    val dirName = outDir.map(_.getPath + "/").getOrElse("./")
+    val f = new File(dirName + fileName + ".html")
+    f.delete()
+    f.createNewFile();
+    
+    val pw = new PrintWriter(f)
+    
+    pw.write("<!DOCTYPE html>\n<html>\n<script src=\"" + script.toPath().toString() + "\"></script>\n</html>")
     pw.close
   }
 }

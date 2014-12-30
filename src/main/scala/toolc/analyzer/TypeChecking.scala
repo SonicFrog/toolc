@@ -19,18 +19,40 @@ object TypeChecking extends Pipeline[Program, Program] {
         case Or(lhs, rhs) => tcExpr(lhs, TBool); tcExpr(rhs, TBool)
 
         case Plus(lhs, rhs) => {
-          val t1 = tcExpr(lhs, TString, TInt)
+          val t1 = tcExpr(lhs, TString, TInt, TDouble)
 
           t1 match {
-            case TString => tcExpr(rhs, TInt, TString); TString
-            case TInt => tcExpr(rhs, TInt, TString)
+            case TString => tcExpr(rhs, TInt, TString, TDouble); TString
+            case TInt => tcExpr(rhs, TInt, TString, TDouble)
+            case TDouble => tcExpr(rhs, TInt, TString, TDouble) match {
+              case TString => TString
+              case _ => TDouble
+            }
             case _ => TError
           }
         }
 
-        case Minus(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt)
-        case Times(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt)
-        case Div(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt)
+        case Minus(lhs, rhs) => {
+          val t1 = tcExpr(lhs, TInt, TDouble)
+
+          t1 match {
+            case TInt => tcExpr(rhs, TInt, TDouble)
+            case TDouble => tcExpr(rhs, TInt, TString, TDouble); TDouble
+            case _ => TError
+          }
+        }
+        
+        case Times(lhs, rhs) => {
+          val t1 = tcExpr(lhs, TInt, TDouble)
+
+          t1 match {
+            case TInt => tcExpr(rhs, TInt, TDouble)
+            case TDouble => tcExpr(rhs, TInt, TString, TDouble); TDouble
+            case _ => TError
+          }
+        }
+        
+        case Div(lhs, rhs) => tcExpr(lhs, TInt, TDouble); tcExpr(rhs, TInt, TDouble); TDouble
 
         case LessThan(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt); TBool
         case Equals(lhs, rhs) => {
@@ -39,16 +61,17 @@ object TypeChecking extends Pipeline[Program, Program] {
           t1 match {
             case TObject(cs) => tcExpr(rhs, TAnyObject)
             case TInt => tcExpr(rhs, TInt)
+            case TDouble => tcExpr(rhs, TDouble)
             case TString => tcExpr(rhs, TString)
             case TBool => tcExpr(rhs, TBool)
-            case TIntArray => tcExpr(rhs, TIntArray)
+            case TArray(inner) => tcExpr(rhs, TArray(inner))
             case _ => TError
           }
 
           TBool
         }
 
-        case ArrayRead(arr, index) => tcExpr(arr, TIntArray); tcExpr(index, TInt)
+        case ArrayRead(arr, index) => tcExpr(arr, arr.getType); tcExpr(index, TInt)
         case ArrayLength(arr) => tcExpr(arr, TIntArray); TInt
 
         case MethodCall(obj, meth, args) => {
@@ -81,12 +104,13 @@ object TypeChecking extends Pipeline[Program, Program] {
 
         case IntLit(value) => expr.setType(TInt); TInt
         case StringLit(value) => TString
+        case DoubleLit(value) => expr.setType(TDouble); TDouble
         case True() | False() => TBool
         case id : Identifier => id.getType
         case ths: This => ths.getType
         case New(tpe) => tpe.getType
         case Not(expr) => tcExpr(expr, TBool)
-        case NewArray(size, tpe) => tcExpr(size, TInt); TArray(tpe.getType)
+        case NewArray(size, tpe) => tcExpr(size, TInt); TArray(tpe.getType.asInstanceOf[TArray].innerType)
 
         case ReadString(msg) => tcExpr(msg, TString); TString
         case ReadDouble(msg) => tcExpr(msg, TString); TDouble
@@ -116,7 +140,9 @@ object TypeChecking extends Pipeline[Program, Program] {
         //case Println(expr) => tcExpr(expr, TString, TInt, TBool)
         case Assign(id, expr) => tcExpr(expr, id.getType)
         case ArrayAssign(id, index, expr) =>
-          tcExpr(id, TIntArray); tcExpr(index, TInt); tcExpr(expr, TInt)
+          tcExpr(id, id.getType); tcExpr(index, TInt); tcExpr(expr, id.getType.asInstanceOf[TArray].innerType)
+        case WriteLine(msg) => tcExpr(msg, TString)
+        case ShowPopup(msg) => tcExpr(msg, TString)
       }
     }
 
