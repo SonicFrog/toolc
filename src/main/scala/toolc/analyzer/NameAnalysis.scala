@@ -324,7 +324,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
 
         case NewArray(size, tpe) => {
           handleExprTree(size, sym)
-          tpe.setType(checkArrayType(tpe))
+          et.setType(checkArrayType(tpe))
         }
 
         case New(tpe) => tpe.setSymbol(globalScope.lookupClass(tpe.value).getOrElse(fatal(tpe.value + " not declared", tpe)))

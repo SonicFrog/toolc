@@ -34,7 +34,7 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
 
     def readNextToken(): Token = {
       var tokenPos = currentPos
-      val numbers = "([1-9])".r
+      val numbers = "([0-9])".r
       val letters = "([a-zA-Z])".r
 
       val keywordToToken = Map("if" -> new Token(IF), "else" -> new Token(ELSE), "new" -> new Token(NEW),
@@ -132,7 +132,10 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
             }
 
             case numbers(d) => {
-              val start = d :: takeWhile(_.isDigit).toList
+              val start = d match {
+                case '0' => List(d)
+                case _ => d :: takeWhile(_.isDigit).toList
+              }
               if (sourceIterator.head == '.') { //Double literal
                 sourceIterator.next
                 val end = takeWhile(_.isDigit).toList
@@ -154,8 +157,6 @@ object Lexer extends Pipeline[File, Iterator[Token]] {
                 new Token(BAD)
               }
             }
-
-            case '0' => new INTLIT(0)
 
             case e @ _ => {
               ctx.reporter.error("Invalid character: '"+e+"'", currentPos)

@@ -22,12 +22,13 @@ object TypeChecking extends Pipeline[Program, Program] {
           val t1 = tcExpr(lhs, TString, TInt, TDouble)
 
           t1 match {
-            case TString => tcExpr(rhs, TInt, TString, TDouble); TString
+            case TString => tcExpr(rhs, TInt, TString, TDouble, TBool); TString
             case TInt => tcExpr(rhs, TInt, TString, TDouble)
             case TDouble => tcExpr(rhs, TInt, TString, TDouble) match {
               case TString => TString
               case _ => TDouble
             }
+            case TBool => tcExpr(rhs, TString)
             case _ => TError
           }
         }
@@ -64,7 +65,7 @@ object TypeChecking extends Pipeline[Program, Program] {
             case TDouble => tcExpr(rhs, TDouble)
             case TString => tcExpr(rhs, TString)
             case TBool => tcExpr(rhs, TBool)
-            case TArray(inner) => tcExpr(rhs, TArray(inner))
+            case arr : TArray => tcExpr(rhs, arr)
             case _ => TError
           }
 
@@ -110,7 +111,7 @@ object TypeChecking extends Pipeline[Program, Program] {
         case ths: This => ths.getType
         case New(tpe) => tpe.getType
         case Not(expr) => tcExpr(expr, TBool)
-        case NewArray(size, tpe) => tcExpr(size, TInt); TArray(tpe.getType.asInstanceOf[TArray].innerType)
+        case NewArray(size, tpe) => tcExpr(size, TInt); println("________________" + expr.getType); expr.getType
 
         case ReadString(msg) => tcExpr(msg, TString); TString
         case ReadDouble(msg) => tcExpr(msg, TString); TDouble

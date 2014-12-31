@@ -9,8 +9,8 @@ object Types {
 
     private var _tpe: Type = TUntyped
 
-    def setType(tpe: Type): self.type = { _tpe = tpe; this }
-    def getType: Type = _tpe
+    def setType(tpe: Type): self.type = { print(" " + tpe); _tpe = tpe; print(" " + _tpe); this }
+    def getType: Type = {print(" " + _tpe); _tpe}
   }
 
   sealed abstract class Type {
@@ -70,7 +70,7 @@ object Types {
   case class TArray(innerType : Type) extends Type {
     override def isSubTypeOf(tpe : Type) : Boolean = tpe match {
       case TGenericArray => true
-      case TArray(otherInner) => otherInner.isSubTypeOf(innerType)
+      case TArray(otherInner) => innerType.isSubTypeOf(otherInner)
       case _ => false
     }
     override def toString = innerType.toString + "[]"
