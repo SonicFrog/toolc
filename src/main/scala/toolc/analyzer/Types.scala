@@ -9,8 +9,8 @@ object Types {
 
     private var _tpe: Type = TUntyped
 
-    def setType(tpe: Type): self.type = { print(" " + tpe); _tpe = tpe; print(" " + _tpe); this }
-    def getType: Type = {print(" " + _tpe); _tpe}
+    def setType(tpe: Type): self.type = { _tpe = tpe; this }
+    def getType: Type = _tpe
   }
 
   sealed abstract class Type {

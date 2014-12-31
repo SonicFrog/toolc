@@ -111,7 +111,7 @@ object TypeChecking extends Pipeline[Program, Program] {
         case ths: This => ths.getType
         case New(tpe) => tpe.getType
         case Not(expr) => tcExpr(expr, TBool)
-        case NewArray(size, tpe) => tcExpr(size, TInt); println("________________" + expr.getType); expr.getType
+        case NewArray(size, tpe) => tcExpr(size, TInt); expr.getType
 
         case ReadString(msg) => tcExpr(msg, TString); TString
         case ReadDouble(msg) => tcExpr(msg, TString); TDouble
@@ -119,8 +119,6 @@ object TypeChecking extends Pipeline[Program, Program] {
       }
 
       expr.setType(tpe) //Assign type computed above to current expression
-      
-      println(expr.getType + " " + expr.toString())
 
       // Check result and return a valid type in case of error
       if(expected.isEmpty) {
@@ -140,9 +138,8 @@ object TypeChecking extends Pipeline[Program, Program] {
         case Block(stats) => stats.foreach (tcStat(_))
         case If(cond, thn, els) => tcExpr(cond, TBool); tcStat(thn); els.foreach(tcStat(_))
         case While(cond, stat) => tcExpr(cond, TBool); tcStat(stat)
-        //case Println(expr) => tcExpr(expr, TString, TInt, TBool)
         case Assign(id, expr) => tcExpr(expr, id.getType)
-        case ArrayAssign(id, index, expr) => println("this is the id!   " + id.toString() )
+        case ArrayAssign(id, index, expr) =>
           tcExpr(id, TGenericArray); tcExpr(index, TInt); tcExpr(expr, id.getType.asInstanceOf[TArray].innerType)
         case WriteLine(msg) => tcExpr(msg, TString)
         case ShowPopup(msg) => tcExpr(msg, TString)

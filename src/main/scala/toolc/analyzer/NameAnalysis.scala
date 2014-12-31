@@ -14,7 +14,6 @@ object NameAnalysis extends Pipeline[Program, Program] {
     val globalScope = new GlobalScope
 
     def fetchType(tpe: TypeTree): Types.Type = {
-      println(tpe)
       tpe match {
         case _: IntType => TInt
         case _: BooleanType => TBool

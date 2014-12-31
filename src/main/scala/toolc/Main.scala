@@ -6,9 +6,7 @@ import java.io.PrintWriter
 
 import lexer._
 import ast._
-import eval._
 import analyzer._
-import code._
 
 object Main {
 
