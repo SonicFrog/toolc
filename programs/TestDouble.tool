@@ -17,6 +17,7 @@ class Expr {
 	}
 
 	def divideAndMultiply(double : Double, doubleTop : Double, int: Int) : Double = {
+		IO.writeLine("Is 2.2 < 2.1 ? " + (2.2 < 2.1));
 		return double / doubleTop * int;
 	}
 }
