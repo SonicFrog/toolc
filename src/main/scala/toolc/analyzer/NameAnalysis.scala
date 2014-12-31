@@ -278,7 +278,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
           attachVarSymbol(id, sym)
           handleExprTree(expr, sym)
         case ArrayAssign(id, index, expr) =>
-          attachVarSymbol(id, sym)
+          handleExprTree(id, sym)
           handleExprTree(index, sym)
           handleExprTree(expr, sym)
       }

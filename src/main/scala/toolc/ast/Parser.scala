@@ -15,6 +15,8 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     var currentToken: Token = new Token(BAD)
 
     def readToken: Unit = {
+      
+      println(currentToken.toString())
       if (tokens.hasNext) {
         currentToken = tokens.next
 
@@ -27,7 +29,6 @@ object Parser extends Pipeline[Iterator[Token], Program] {
 
     // ''Eats'' the expected token, or terminates with an error.
     def eat(kind: TokenKind): Unit = {
-      println(kind.toString())
       if (currentToken.kind == kind) {
         readToken
       } else {
@@ -42,6 +43,13 @@ object Parser extends Pipeline[Iterator[Token], Program] {
 
     def isOneOf(kind : TokenKind, more : TokenKind*) : Boolean = {
       (kind :: more.toList).contains(currentToken.kind)
+    }
+    
+    def parseNewArray(inner: TypeTree) : TypeTree = {
+      currentToken.kind match {
+        case LBRACKET => readToken; eat(RBRACKET); ArrayType(parseNewArray(inner))
+        case _ => inner
+      }
     }
 
 
@@ -135,7 +143,8 @@ object Parser extends Pipeline[Iterator[Token], Program] {
             readToken
             val size = expr
             eat(RBRACKET)
-            NewArray(size, inner).setPos(pos)
+            val fleshedTree = parseNewArray(inner)
+            NewArray(size, fleshedTree).setPos(pos)
           }
           case LPAREN => 
             readToken
@@ -587,13 +596,22 @@ object Parser extends Pipeline[Iterator[Token], Program] {
 
           currentToken.kind match {
             case LBRACKET => {
+              var ident : ExprTree = identifier
               eat(LBRACKET)
-              val arrayIndex = expr
+              var arrayIndex = expr
               eat(RBRACKET)
+              while(currentToken.kind == LBRACKET) {
+                readToken
+                val newArrayIndex = expr
+                eat(RBRACKET)
+                ident = ArrayRead(ident, arrayIndex)
+                arrayIndex = newArrayIndex
+              }
+              
               eat(EQSIGN)
               val assignExpr = expr
               eat(SEMICOLON)
-              ArrayAssign(identifier, arrayIndex, assignExpr).setPos(pos)
+              ArrayAssign(ident, arrayIndex, assignExpr).setPos(pos)
             }
 
             case _ => {

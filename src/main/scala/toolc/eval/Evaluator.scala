@@ -47,8 +47,8 @@ class Evaluator(ctx: Context, prog: Program) {
     
     //My bad simply use id.value to get the name as a string ...
     case ArrayAssign(id, index, expr) => {
-      val array = ectx.getVariable(id.value).asArray
-      array.setIndex(evalExpr(ectx, index).asInt, evalExpr(ectx, expr).asInt)
+      //val array = ectx.getVariable(id.value).asArray
+      //array.setIndex(evalExpr(ectx, index).asInt, evalExpr(ectx, expr).asInt)
     }
       
     case _ =>

@@ -21,7 +21,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         case TInt => "I"
         case TString => "Ljava/lang/String;"
         case TBool => "Z"
-        case TIntArray => "[I"
+        //case TIntArray => "[I"
         case _ => sys.error("Internal compiler error!")
       }
     }
@@ -66,7 +66,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
       generateExpressionCode(ch, mt, mt.retExpr, env)
 
       ch << (mt.retExpr.getType match {
-        case TString | TIntArray | TObject(_) => ARETURN
+        case TString | TObject(_) => ARETURN
         case TBool | TInt => IRETURN
         case _ => sys.error("Internal compiler error!")
       })
@@ -79,7 +79,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
         val jVMSlot = env(v);
         ch << (v.getType match {
           case TInt | TBool => ILoad(jVMSlot)
-          case TObject(_) | TString | TIntArray => ALoad(jVMSlot)
+          case TObject(_) | TString => ALoad(jVMSlot)
           case _ => sys.error("Internal compiler error!")
         })
       }
@@ -147,7 +147,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
             generateExpressionCode(ch, mt, expr, env)
             ch << (v.getType match {
               case TInt | TBool => IStore(jVMSlot.get)
-              case TObject(_) | TString | TIntArray => AStore(jVMSlot.get)
+              case TObject(_) | TString => AStore(jVMSlot.get)
               case _ => sys.error("Internal compiler error!")
             })
           }
@@ -155,7 +155,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
             generateExpressionCode(ch, mt, expr, env)
             ch << (v.getType match {
               case TInt | TBool => IStore(mt.getSymbol.argList.indexOf(v) + 1)
-              case TObject(_) | TString | TIntArray => AStore(mt.getSymbol.argList.indexOf(v) + 1)
+              case TObject(_) | TString => AStore(mt.getSymbol.argList.indexOf(v) + 1)
               case _ => sys.error("Internal compiler error!")
             })
           }
@@ -192,7 +192,7 @@ object CodeGeneration extends Pipeline[Program, Unit] {
 
           lhs.getType match {
             case TInt | TBool => ch << If_ICmpEq(labelAfter)
-            case TIntArray | TObject(_) | TString => ch << If_ACmpEq(labelAfter)
+            case TObject(_) | TString => ch << If_ACmpEq(labelAfter)
             case _ => sys.error("Internal compiler error!")
           }
 

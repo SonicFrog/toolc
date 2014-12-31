@@ -56,7 +56,7 @@ object TypeChecking extends Pipeline[Program, Program] {
 
         case LessThan(lhs, rhs) => tcExpr(lhs, TInt); tcExpr(rhs, TInt); TBool
         case Equals(lhs, rhs) => {
-          val t1 = tcExpr(lhs, TAnyObject, TInt, TString, TBool, TIntArray)
+          val t1 = tcExpr(lhs, TAnyObject, TInt, TString, TBool) // TODO TArray
 
           t1 match {
             case TObject(cs) => tcExpr(rhs, TAnyObject)
@@ -71,8 +71,8 @@ object TypeChecking extends Pipeline[Program, Program] {
           TBool
         }
 
-        case ArrayRead(arr, index) => tcExpr(arr, arr.getType); tcExpr(index, TInt)
-        case ArrayLength(arr) => tcExpr(arr, TIntArray); TInt
+        case ArrayRead(arr, index) => tcExpr(index, TInt); tcExpr(arr, TGenericArray); arr.getType.asInstanceOf[TArray].innerType
+        case ArrayLength(arr) => tcExpr(arr, arr.getType); TInt
 
         case MethodCall(obj, meth, args) => {
           val t = tcExpr(obj, TAnyObject)
@@ -118,6 +118,8 @@ object TypeChecking extends Pipeline[Program, Program] {
       }
 
       expr.setType(tpe) //Assign type computed above to current expression
+      
+      println(expr.getType + " " + expr.toString())
 
       // Check result and return a valid type in case of error
       if(expected.isEmpty) {
@@ -139,7 +141,7 @@ object TypeChecking extends Pipeline[Program, Program] {
         case While(cond, stat) => tcExpr(cond, TBool); tcStat(stat)
         //case Println(expr) => tcExpr(expr, TString, TInt, TBool)
         case Assign(id, expr) => tcExpr(expr, id.getType)
-        case ArrayAssign(id, index, expr) =>
+        case ArrayAssign(id, index, expr) => println("this is the id!   " + id.toString() )
           tcExpr(id, id.getType); tcExpr(index, TInt); tcExpr(expr, id.getType.asInstanceOf[TArray].innerType)
         case WriteLine(msg) => tcExpr(msg, TString)
         case ShowPopup(msg) => tcExpr(msg, TString)

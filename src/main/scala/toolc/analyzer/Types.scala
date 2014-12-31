@@ -51,14 +51,6 @@ object Types {
     override def toString = "Double"
   }
 
-  case object TIntArray extends Type {
-    override def isSubTypeOf(tpe: Type): Boolean = tpe match {
-      case TIntArray => true
-      case _ => false
-    }
-    override def toString = "Int[]"
-  }
-
   case object TString extends Type {
     override def isSubTypeOf(tpe: Type): Boolean = tpe match {
       case TString => true
@@ -66,9 +58,18 @@ object Types {
     }
     override def toString = "String"
   }
+  
+  case object TGenericArray extends Type {
+    override def isSubTypeOf(tpe : Type) : Boolean = tpe match {
+      case TGenericArray => true
+      case _ => false
+    }
+    override def toString = "AnyArray[]"
+  }
 
   case class TArray(innerType : Type) extends Type {
     override def isSubTypeOf(tpe : Type) : Boolean = tpe match {
+      case TGenericArray => true
       case TArray(otherInner) => otherInner.isSubTypeOf(innerType)
       case _ => false
     }

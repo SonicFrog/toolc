@@ -27,7 +27,7 @@ object Trees {
   case class If(expr: ExprTree, thn: StatTree, els: Option[StatTree]) extends StatTree
   case class While(expr: ExprTree, stat: StatTree) extends StatTree
   case class Assign(id: Identifier, expr: ExprTree) extends StatTree
-  case class ArrayAssign(id: Identifier, index: ExprTree, expr: ExprTree) extends StatTree
+  case class ArrayAssign(id: ExprTree, index: ExprTree, expr: ExprTree) extends StatTree
   
   //IO specific method calls
   case class WriteLine(message : ExprTree) extends StatTree

@@ -75,7 +75,7 @@ object PrinterJS {
       case ReadString(msg) => "prompt(" + this(msg, methodScope) + ")"
       case ReadInteger(msg) => "parseInt(prompt(" + this(msg, methodScope) + "))"
       case ReadDouble(msg) => "parseFloat(prompt(" + this(msg, methodScope) + "))"
-      case WriteLine(msg) => "document.write(" + this(msg, methodScope) + ");"
+      case WriteLine(msg) => "document.write(" + this(msg, methodScope) + "+ \"<br/>\");"
       case ShowPopup(msg) => "window.alert(" + this(msg, methodScope) + ");"
     }
   }
