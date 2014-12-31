@@ -169,6 +169,7 @@ object TypeChecking extends Pipeline[Program, Program] {
         case Assign(id, expr) => tcExpr(expr, id.getType)
         case ArrayAssign(id, index, expr) =>
           tcExpr(id, TGenericArray); tcExpr(index, TInt); tcExpr(expr, id.getType.asInstanceOf[TArray].innerType)
+        case Log(msg) => tcExpr(msg, TString)
         case WriteLine(msg) => tcExpr(msg, TString)
         case ShowPopup(msg) => tcExpr(msg, TString)
       }

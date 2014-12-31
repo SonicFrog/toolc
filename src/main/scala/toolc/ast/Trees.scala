@@ -30,6 +30,7 @@ object Trees {
   case class ArrayAssign(id: ExprTree, index: ExprTree, expr: ExprTree) extends StatTree
   
   //IO specific method calls
+  case class Log(message : ExprTree) extends StatTree
   case class WriteLine(message : ExprTree) extends StatTree
   case class ShowPopup(message : ExprTree) extends StatTree
 

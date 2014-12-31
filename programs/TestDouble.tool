@@ -28,6 +28,8 @@ class ArrayOfDouble {
 		var weStillDontCare : Double[][];
 		var weAreStartingToCare : Double[][][];
 
+		IO.log("does that logs anything?");
+
 		array = new Double[2];
 		array[0] = IO.readDouble("Enter a Double please: ");
 		array[1] = 2.6;

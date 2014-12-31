@@ -560,6 +560,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
           eat(SEMICOLON)
 
           method match {
+            case "log" => Log(msg)
             case "writeLine" => WriteLine(msg)
             case "showPopup" => ShowPopup(msg)
             case _ => fatal("IO." + method + " is not a statement", currentToken)

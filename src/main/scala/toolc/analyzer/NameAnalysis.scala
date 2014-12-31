@@ -271,6 +271,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
         case While(expr, stat) =>
           handleExprTree(expr, sym)
           handleStatTree(stat, sym)
+        case Log(expr) => handleExprTree(expr, sym)
         case WriteLine(expr) => handleExprTree(expr, sym)
         case ShowPopup(expr) => handleExprTree(expr, sym)
         case Assign(id, expr) =>
