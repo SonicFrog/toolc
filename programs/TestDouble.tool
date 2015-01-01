@@ -77,6 +77,8 @@ class ArrayOfDouble {
 		result[0] = firstRow;
 		result[1] = secondRow;
 
+		IO.writeLine(result[0][1].length + "");
+
 		return result;
 	}
 }

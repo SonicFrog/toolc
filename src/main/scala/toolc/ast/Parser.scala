@@ -15,7 +15,6 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     var currentToken: Token = new Token(BAD)
 
     def readToken: Unit = {
-
       if (tokens.hasNext) {
         currentToken = tokens.next
 
@@ -280,7 +279,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
     }
 
     def parseBracket: ExprTree = {
-      var lhs = parseDot
+      var lhs = parseMethodCall(parseParens)
 
       while (currentToken.kind == LBRACKET) {
         readToken
@@ -288,13 +287,11 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         eat(RBRACKET)
         lhs = new ArrayRead(lhs, index)
       }
-
-      lhs
+      
+      parseMethodCall(lhs)
     }
-
-    def parseDot: ExprTree = {
-      val lhs = parseParens
-
+    
+    def parseMethodCall(lhs : ExprTree) : ExprTree = {
       var meth: ExprTree = null
       var hasMoreArgs: Boolean = true
 
@@ -618,6 +615,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
                 ident = ArrayRead(ident, arrayIndex)
                 arrayIndex = newArrayIndex
               }
+              
 
               eat(EQSIGN)
               val assignExpr = expr
