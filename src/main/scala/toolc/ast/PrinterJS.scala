@@ -2,6 +2,7 @@ package toolc
 package ast
 
 import Trees._
+import analyzer.Types._
 import analyzer.Symbols._
 
 object PrinterJS {
@@ -45,7 +46,10 @@ object PrinterJS {
       case Plus(lhs, rhs) => "(" + this(lhs, methodScope) + " + " + this(rhs, methodScope) + ")"
       case Minus(lhs, rhs) => "(" + this(lhs, methodScope) + " - " + this(rhs, methodScope) + ")"
       case Times(lhs, rhs) => "(" + this(lhs, methodScope) + " * " + this(rhs, methodScope) + ")"
-      case Div(lhs, rhs) => "(" + this(lhs, methodScope) + " / " + this(rhs, methodScope) + ")"
+      case div : Div => div.getType match {
+        case TInt => "Math.floor((" + this(div.lhs, methodScope) + " / " + this(div.rhs, methodScope) + "))"
+        case _ => "(" + this(div.lhs, methodScope) + " / " + this(div.rhs, methodScope) + ")"
+      }
       case LessThan(lhs, rhs) => "(" + this(lhs, methodScope) + " < " + this(rhs, methodScope) + ")"
       case Equals(lhs, rhs) => "(" + this(lhs, methodScope) + " == " + this(rhs, methodScope) + ")"
       case ArrayRead(arr, index) => this(arr, methodScope) + "[" + this(index, methodScope) + "]"

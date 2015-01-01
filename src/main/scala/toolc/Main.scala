@@ -75,7 +75,7 @@ object Main {
     
     val pw = new PrintWriter(f)
     
-    pw.write("<!DOCTYPE html>\n<html>\n    <head><meta content=\"text/html; charset=UTF-8\" http-equiv=\"Content-Type\"></meta></head>\n    <body>\n        <script src=\"" + script.toPath().toString() + "\"></script>\n    </boddy>\n</html>")
+    pw.write("<!DOCTYPE html>\n<html>\n    <head><meta content=\"text/html; charset=UTF-8\" http-equiv=\"Content-Type\"></meta></head>\n    <body>\n        <pre STYLE=\"font-family: Menlo\"><script src=\"" + script.toPath().toString() + "\"></script></pre>\n    </body>\n</html>")
     pw.close
   }
 }
