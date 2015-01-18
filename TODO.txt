@@ -1,0 +1,42 @@
+JS doesn't allow to have fields and methods with the same name!
+
+parametrized constructor
+
+
+
+
+
+
+
+
+
+
+SOLVED:
+
+can concat boolean
+
+problem with the equals and TArray as an absolute.  <-- should be fixed
+
+accessing and initiating multi dimension arrays is a mess.   <-- seems fixed
+
+float instead of double as it seems there is no double in JavaScript <- we don't care
+
+legacy support for println <-- has been re-added
+
+write // writeln  <-- we don't care
+
+"int / int" is still considered Int for legacy support purpose
+
+Logging feature addition as IO.log(msg) <-- done
+
+comparator for double needs to be set up <-- done
+
+pre tag added to keep the console-like printing
+
+forced a monospace font again to keep the console-like printing
+
+slots[i][j].methodcall() should be allowed < -- fixed now parsing for method call even after the arrayread detection.
+
+force int / int as an integer otherwise strange things happens <-- fixed with a type checking in the PrinterJS and a Math.floor call.
+
+for statement ? Foreach ? Map? <-- we don't care
