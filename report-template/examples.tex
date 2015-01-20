@@ -3,8 +3,7 @@ Tool's greatest limitation is its lack of interaction with the
 user. JavaScript, on the  contrary, has some already implemented
 functions for all those purposes. All these IO functions are managed
 through the use of new built-in IO object in order to reduce the
-number of keywords required. The println statement from the original
-TOOL has been retained for compatibility reasons.
+number of keywords required.
 
 \subsubsection{Input management}
 
@@ -64,7 +63,7 @@ it is also possible to log message to the Javascript console.
 
 Another great limitation of Tool is that it only supports very basic
 types. Our extension adds support for generic arrays and floating
-point numbers to TOOL.
+point numbers to Tool.
 
 \begin{lstlisting}
   var c : Double;
@@ -130,11 +129,11 @@ multi-dimensional arrays.
 
 \subsection{Parametrized constructor}
 
-The support for constructors has also been added to the TOOL
+The support for constructors has also been added to the Tool
 language. However currently only one constructor per class is
 allowed. The constructor must be declared directly after the fields of
 the class and before any method declaration. In order to retain
-compatibility with older TOOL programs a class declaring no
+compatibility with older Tool programs a class declaring no
 constructor is assumed to have a default constructor which takes no
 arguments.
 
