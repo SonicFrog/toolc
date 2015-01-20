@@ -7,6 +7,10 @@ object Sudoku {
 class Slot {
 	var value: Int;
 
+	this(val : Int) = {
+		value = val;
+	}
+
 	def getVal() : Int = {
 		return value;
 	}
@@ -22,6 +26,11 @@ class Slot {
 }
 
 class InitSlot extends Slot{
+
+	this(val : Int) = {
+		value = val;
+	}
+
 	def isInit() : Bool = {
 		return true;
 	}
@@ -45,87 +54,87 @@ class Grid{
 
 		/* It would take too much time to translate the 3 grids so only the level one is translated */
 		//if(level == 1){
-			slots[0][0] = new InitSlot().setVal(6);
-			slots[1][0] = new Slot().setVal(0);
-			slots[2][0] = new Slot().setVal(0);
-			slots[3][0] = new InitSlot().setVal(1);
-			slots[4][0] = new Slot().setVal(0);
-			slots[5][0] = new InitSlot().setVal(8);
-			slots[6][0] = new InitSlot().setVal(2);
-			slots[7][0] = new Slot().setVal(0);
-			slots[8][0] = new InitSlot().setVal(3);
-			slots[0][1] = new Slot().setVal(0);
-			slots[1][1] = new InitSlot().setVal(2);
-			slots[2][1] = new Slot().setVal(0);
-			slots[3][1] = new Slot().setVal(0);
-			slots[4][1] = new InitSlot().setVal(4);
-			slots[5][1] = new Slot().setVal(0);
-			slots[6][1] = new Slot().setVal(0);
-			slots[7][1] = new InitSlot().setVal(9);
-			slots[8][1] = new Slot().setVal(0);
-			slots[0][2] = new InitSlot().setVal(8);
-			slots[1][2] = new Slot().setVal(0);
-			slots[2][2] = new InitSlot().setVal(3);
-			slots[3][2] = new Slot().setVal(0);
-			slots[4][2] = new Slot().setVal(0);
-			slots[5][2] = new InitSlot().setVal(5);
-			slots[6][2] = new InitSlot().setVal(4);
-			slots[7][2] = new Slot().setVal(0);
-			slots[8][2] = new Slot().setVal(0);
-			slots[0][3] = new InitSlot().setVal(5);
-			slots[1][3] = new Slot().setVal(0);
-			slots[2][3] = new InitSlot().setVal(4);
-			slots[3][3] = new InitSlot().setVal(6);
-			slots[4][3] = new Slot().setVal(0);
-			slots[5][3] = new InitSlot().setVal(7);
-			slots[6][3] = new Slot().setVal(0);
-			slots[7][3] = new Slot().setVal(0);
-			slots[8][3] = new InitSlot().setVal(9);
-			slots[0][4] = new Slot().setVal(0);
-			slots[1][4] = new InitSlot().setVal(3);
-			slots[2][4] = new Slot().setVal(0);
-			slots[3][4] = new Slot().setVal(0);
-			slots[4][4] = new Slot().setVal(0);
-			slots[5][4] = new Slot().setVal(0);
-			slots[6][4] = new Slot().setVal(0);
-			slots[7][4] = new InitSlot().setVal(5);
-			slots[8][4] = new Slot().setVal(0);
-			slots[0][5] = new InitSlot().setVal(7);
-			slots[1][5] = new Slot().setVal(0);
-			slots[2][5] = new Slot().setVal(0);
-			slots[3][5] = new InitSlot().setVal(8);
-			slots[4][5] = new Slot().setVal(0);
-			slots[5][5] = new InitSlot().setVal(3);
-			slots[6][5] = new InitSlot().setVal(1);
-			slots[7][5] = new Slot().setVal(0);
-			slots[8][5] = new InitSlot().setVal(2);
-			slots[0][6] = new Slot().setVal(0);
-			slots[1][6] = new Slot().setVal(0);
-			slots[2][6] = new InitSlot().setVal(1);
-			slots[3][6] = new InitSlot().setVal(7);
-			slots[4][6] = new Slot().setVal(0);
-			slots[5][6] = new Slot().setVal(0);
-			slots[6][6] = new InitSlot().setVal(9);
-			slots[7][6] = new Slot().setVal(0);
-			slots[8][6] = new InitSlot().setVal(6);
-			slots[0][7] = new Slot().setVal(0);
-			slots[1][7] = new InitSlot().setVal(8);
-			slots[2][7] = new Slot().setVal(0);
-			slots[3][7] = new Slot().setVal(0);
-			slots[4][7] = new InitSlot().setVal(3);
-			slots[5][7] = new Slot().setVal(0);
-			slots[6][7] = new Slot().setVal(0);
-			slots[7][7] = new InitSlot().setVal(2);
-			slots[8][7] = new Slot().setVal(0);
-			slots[0][8] = new InitSlot().setVal(3);
-			slots[1][8] = new Slot().setVal(0);
-			slots[2][8] = new InitSlot().setVal(2);
-			slots[3][8] = new InitSlot().setVal(9);
-			slots[4][8] = new Slot().setVal(0);
-			slots[5][8] = new InitSlot().setVal(4);
-			slots[6][8] = new Slot().setVal(0);
-			slots[7][8] = new Slot().setVal(0);
-			slots[8][8] = new InitSlot().setVal(5);
+			slots[0][0] = new InitSlot(6);
+			slots[1][0] = new Slot(0);
+			slots[2][0] = new Slot(0);
+			slots[3][0] = new InitSlot(1);
+			slots[4][0] = new Slot(0);
+			slots[5][0] = new InitSlot(8);
+			slots[6][0] = new InitSlot(2);
+			slots[7][0] = new Slot(0);
+			slots[8][0] = new InitSlot(3);
+			slots[0][1] = new Slot(0);
+			slots[1][1] = new InitSlot(2);
+			slots[2][1] = new Slot(0);
+			slots[3][1] = new Slot(0);
+			slots[4][1] = new InitSlot(4);
+			slots[5][1] = new Slot(0);
+			slots[6][1] = new Slot(0);
+			slots[7][1] = new InitSlot(9);
+			slots[8][1] = new Slot(0);
+			slots[0][2] = new InitSlot(8);
+			slots[1][2] = new Slot(0);
+			slots[2][2] = new InitSlot(3);
+			slots[3][2] = new Slot(0);
+			slots[4][2] = new Slot(0);
+			slots[5][2] = new InitSlot(5);
+			slots[6][2] = new InitSlot(4);
+			slots[7][2] = new Slot(0);
+			slots[8][2] = new Slot(0);
+			slots[0][3] = new InitSlot(5);
+			slots[1][3] = new Slot(0);
+			slots[2][3] = new InitSlot(4);
+			slots[3][3] = new InitSlot(6);
+			slots[4][3] = new Slot(0);
+			slots[5][3] = new InitSlot(7);
+			slots[6][3] = new Slot(0);
+			slots[7][3] = new Slot(0);
+			slots[8][3] = new InitSlot(9);
+			slots[0][4] = new Slot(0);
+			slots[1][4] = new InitSlot(3);
+			slots[2][4] = new Slot(0);
+			slots[3][4] = new Slot(0);
+			slots[4][4] = new Slot(0);
+			slots[5][4] = new Slot(0);
+			slots[6][4] = new Slot(0);
+			slots[7][4] = new InitSlot(5);
+			slots[8][4] = new Slot(0);
+			slots[0][5] = new InitSlot(7);
+			slots[1][5] = new Slot(0);
+			slots[2][5] = new Slot(0);
+			slots[3][5] = new InitSlot(8);
+			slots[4][5] = new Slot(0);
+			slots[5][5] = new InitSlot(3);
+			slots[6][5] = new InitSlot(1);
+			slots[7][5] = new Slot(0);
+			slots[8][5] = new InitSlot(2);
+			slots[0][6] = new Slot(0);
+			slots[1][6] = new Slot(0);
+			slots[2][6] = new InitSlot(1);
+			slots[3][6] = new InitSlot(7);
+			slots[4][6] = new Slot(0);
+			slots[5][6] = new Slot(0);
+			slots[6][6] = new InitSlot(9);
+			slots[7][6] = new Slot(0);
+			slots[8][6] = new InitSlot(6);
+			slots[0][7] = new Slot(0);
+			slots[1][7] = new InitSlot(8);
+			slots[2][7] = new Slot(0);
+			slots[3][7] = new Slot(0);
+			slots[4][7] = new InitSlot(3);
+			slots[5][7] = new Slot(0);
+			slots[6][7] = new Slot(0);
+			slots[7][7] = new InitSlot(2);
+			slots[8][7] = new Slot(0);
+			slots[0][8] = new InitSlot(3);
+			slots[1][8] = new Slot(0);
+			slots[2][8] = new InitSlot(2);
+			slots[3][8] = new InitSlot(9);
+			slots[4][8] = new Slot(0);
+			slots[5][8] = new InitSlot(4);
+			slots[6][8] = new Slot(0);
+			slots[7][8] = new Slot(0);
+			slots[8][8] = new InitSlot(5);
 		// } else if(level == 2) {
 		// 	values[0] = 0; first[0] = 0;
 		// 	values[1] = 9; first[1] = 1;

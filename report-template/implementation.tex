@@ -48,13 +48,13 @@ And the following snippet is the Javascript code generated from the previous Too
 function Slot(val){
     this.value = val;
 }
-Slot.prototype.getVal = function() { 
+Slot.prototype.getVal = function() {
     return this.value;
 }
-Slot.prototype.isInit = function() { 
+Slot.prototype.isInit = function() {
     return false;
 }
-Slot.prototype.setVal = function(val) { 
+Slot.prototype.setVal = function(val) {
     this.value = val;
     return this;
 }
@@ -63,7 +63,7 @@ InitSlot.prototype = Object.create(Slot.prototype);
 function InitSlot(val){
     this.value = val;
 }
-InitSlot.prototype.isInit = function() { 
+InitSlot.prototype.isInit = function() {
     return true;
 }
 
@@ -86,8 +86,11 @@ This way, we are able to have arrays of any types and the sub-typing is done by 
 Lexing and parsing had to be changed in order to support any number of brackets (i.e. \emph{superArray[][][][][]}) and to support method call on array reading (i.e. \emph{superArray[2].myMethod()}).
 
 \subsubsection{Parametrized constructor}
+The syntax for constructor declaration was designed with the primary
+goal of keeping the Tool grammar LL(1). Initially, the support for
+multiple constructors was planned but Javascript's handling of
+constructor does not allow for constructor overloading.
 
 \subsubsection{Legacy support}
 As the number of developper using our modified syntax of Tool is really small, we were obligated to have legacy support for the original Tool syntax in order to have more that five programs to test!
 That's why we kept the lexing of println() but we read it as a token WriteLine to avoid code duplication.
-
