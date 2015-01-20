@@ -116,7 +116,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
         }
       }
 
-      inner(Map(), cls.constructors)
+      inner(Map(), List(cls.constructor))
     }
 
     def collectMethods(cls: ClassDecl, cs: ClassSymbol): Map[String, MethodSymbol] = {
@@ -227,7 +227,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
           mdcl.getSymbol.members = mapMeth
           (mapMeth ++: paramsTuple._1).values
         }
-      }} ++ {classe.constructors flatMap { mdcl : MethodDecl =>
+      }} ++ {List(classe.constructor) flatMap { mdcl : MethodDecl =>
         {
           val vars = collectMethodVariables(mdcl, mdcl.getSymbol)
           val paramsTuple = collectMethodParam(mdcl, mdcl.getSymbol)
@@ -254,9 +254,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
         meth => meth.stats foreach (handleStatTree(_, meth.getSymbol))))
 
     prog.classes foreach {
-      _.constructors foreach {
-        cstr => cstr.stats foreach (handleStatTree(_, cstr.getSymbol))
-      }
+        cl => cl.constructor.stats foreach (handleStatTree(_, cl.constructor.getSymbol))
     }
 
     prog.classes foreach (cldcl => {
@@ -270,10 +268,8 @@ object NameAnalysis extends Pipeline[Program, Program] {
       }
       cldcl.vars foreach (vrdcl => attachSymbolToType(vrdcl.tpe))
 
-      cldcl.constructors foreach { cstr =>
-        cstr.vars foreach(vrdcl => attachSymbolToType(vrdcl.tpe))
-        cstr.args foreach (arg => attachSymbolToType(arg.tpe))
-      }
+      cldcl.constructor.vars foreach(vrdcl => attachSymbolToType(vrdcl.tpe))
+      cldcl.constructor.args foreach (arg => attachSymbolToType(arg.tpe))
 
       cldcl.methods foreach { meth =>
         meth.vars foreach (vrdcl => attachSymbolToType(vrdcl.tpe))

@@ -16,7 +16,9 @@ object PrinterJS {
       case dcl : ClassDecl =>
         val clName = this(dcl.id, None)
         dcl.parent.flatMap(parent => Some(clName + ".prototype = Object.create(" + this(parent, None) + ".prototype);\n")).getOrElse("") +
-        dcl.constructors.map(cstr => this(cstr, None)).mkString +
+        List(dcl.constructor).map(x => "function " + clName + "(" + x.args.map(y => this(y, None)).mkString(",") + "){\n" +
+          x.vars.map(v => this(v, None) + "\n").mkString +
+          x.stats.map(s => this(s, Some((x.vars.map(v => v.id.value) ::: x.args.map (v => v.id.value)) toSet))).mkString + "}\n").mkString +
         dcl.methods.map(meth => clName + ".prototype." + this(meth, None)).mkString
 
       case dcl : MethodDecl => {
