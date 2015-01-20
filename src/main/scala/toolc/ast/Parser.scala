@@ -403,7 +403,6 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       var parent: Option[Identifier] = None
       var attributes: ListBuffer[VarDecl] = ListBuffer()
       var methods: ListBuffer[MethodDecl] = ListBuffer()
-      var constructors : ListBuffer[MethodDecl] = ListBuffer()
 
       val methodName = currentToken match {
         case name: ID => Identifier(name.value).setPos(currentToken)
@@ -427,21 +426,16 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       while (currentToken.kind == VAR)
         attributes += parseVarDecl
 
-      while (currentToken.kind == DEF || currentToken.kind == THIS) {
-        if (currentToken.kind == DEF)
-          methods += parseMethod
-        else
-          constructors += parseConstructor(methodName)
-      }
+      val constructor = parseConstructor(methodName)
+
+      while (currentToken.kind == DEF)
+        methods += parseMethod
+
 
       eat(RBRACE)
 
-      //Compatibility for "legacy" TOOL programs which do not have a constructor
-      if (constructors.forall(_.args.length != 0))
-        constructors += MethodDecl(methodName, methodName, List(), List(), List(), null)
-
       ClassDecl(methodName, parent, attributes.toList, methods.toList,
-        constructors.toList).setPos(startPos)
+        constructor).setPos(startPos)
     }
 
     def parseConstructor(id : Identifier) : MethodDecl = {

@@ -215,9 +215,7 @@ object TypeChecking extends Pipeline[Program, Program] {
 
     prog.classes.foreach {
       x =>
-      x.constructors.foreach {
-        cstr => cstr.stats.foreach(tcStat(_))
-      }
+      x.constructor.stats.foreach(tcStat(_))
 
       x.methods.foreach {
         y => y.stats.foreach(tcStat(_))
