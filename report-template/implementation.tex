@@ -48,13 +48,13 @@ And the following snippet is the Javascript code generated from the previous Too
 function Slot(val){
     this.value = val;
 }
-Slot.prototype.getVal = function() { 
+Slot.prototype.getVal = function() {
     return this.value;
 }
-Slot.prototype.isInit = function() { 
+Slot.prototype.isInit = function() {
     return false;
 }
-Slot.prototype.setVal = function(val) { 
+Slot.prototype.setVal = function(val) {
     this.value = val;
     return this;
 }
@@ -63,7 +63,7 @@ InitSlot.prototype = Object.create(Slot.prototype);
 function InitSlot(val){
     this.value = val;
 }
-InitSlot.prototype.isInit = function() { 
+InitSlot.prototype.isInit = function() {
     return true;
 }
 
@@ -77,13 +77,16 @@ InitSlot.prototype.isInit = function() {
 Integer are now defined as a subtype of double so it is possible to do the arithmetic operations on an integer and a double without any trouble thanks to the weak typing of JavaScript.
 
 But this introduce a new problem, as there is only a number type (IEEE 754 64-bits standard) there is no integer in absolute. This is problematic, for example when you want to do an integer by integer division
-in JavaScript the result will not  
+in JavaScript the result will not
 
 \subsubsection{Array of any Types (including arrays of arrays)}
 
 \subsubsection{Parametrized constructor}
+The syntax for constructor declaration was designed with the primary
+goal of keeping the Tool grammar LL(1). Initially, the support for
+multiple constructors was planned but Javascript's handling of
+constructor does not allow for constructor overloading.
 
 \subsubsection{Legacy support}
 As the number of developper using our modified syntax of Tool is really small, we were obligated to have legacy support for the original Tool syntax in order to have more that five programs to test!
 That's why we kept the lexing of println() but we read it as a token WriteLine to avoid code duplication.
-
