@@ -8,6 +8,67 @@ And \cite{JSProto} was filled with details about the prototypes in JavaScript wh
 
 \subsection{Implementations Details}
 \subsubsection{Tool Classes and inheritance}
+As already mentioned, JavaScript does not have Classes as of, instead it has an element called Object which you can define a prototype of and then define a function associated to a prototype. Heritage its self can be simulated with the method Object.create(\emph{prototype}) which will take the \emph{prototype} as a base for our child class.The following code snippet represent a simple heritage in Tool:
+\begin{lstlisting}
+class Slot {
+	var value: Int;
+
+	this(val : Int) = {
+		value = val;
+	}
+
+	def getVal() : Int = {
+		return value;
+	}
+
+	def isInit() : Bool = {
+		return false;
+	}
+
+	def setVal(val : Int) : Slot = {
+		value = val;
+		return this;
+	}
+}
+
+class InitSlot extends Slot{
+
+	this(val : Int) = {
+		value = val;
+	}
+
+	def isInit() : Bool = {
+		return true;
+	}
+}
+\end{lstlisting}
+
+And the following snippet is the Javascript code generated from the previous Tool code:
+\begin{lstlisting}[language=javascript]
+function Slot(val){
+    this.value = val;
+}
+Slot.prototype.getVal = function() { 
+    return this.value;
+}
+Slot.prototype.isInit = function() { 
+    return false;
+}
+Slot.prototype.setVal = function(val) { 
+    this.value = val;
+    return this;
+}
+
+InitSlot.prototype = Object.create(Slot.prototype);
+function InitSlot(val){
+    this.value = val;
+}
+InitSlot.prototype.isInit = function() { 
+    return true;
+}
+
+\end{lstlisting}
+
 \subsubsection{Imitating the environnement of a shell}
 \subsubsection{Input gestion}
 \subsubsection{Double in Tool and Integer in JavaScript}
