@@ -1,7 +1,7 @@
-Describe in a few words what you did in the first part of the compiler project
-(the non-optional labs), and briefly say what problem you want to solve with
-your extension.
+During this semester we implemented a compiler for the Tool language.
+We first wrote a lexer that transforms a stream of characters in a sequence of tokens.
+This stream is token is then transformed into an abstract syntax tree by the parser of our compiler.
+Once we have our tree it is then analyzed for correctness by the name analyzer and the type checker.
+The last step is translating the abstract syntax tree to actual executable code. Our original target was Java byte code for execution on a JVM.
 
-This section should convince us that you have a clear picture of the general
-architecture of your compiler and that you understand how your extension fits
-in it.
+Our extension aims to compile Tool to Javascript instead of Java bytecode, thus allowing Tool to be executed inside a browser. This allowed us to add many features to the Tool language. Those features are described throughout this document.
