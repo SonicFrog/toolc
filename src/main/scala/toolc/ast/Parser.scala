@@ -146,10 +146,27 @@ object Parser extends Pipeline[Iterator[Token], Program] {
           }
           case LPAREN =>
             readToken
+
+            var hasMoreArgs : Boolean = true
+
             inner match {
-              //TODO: implement parametrized constructors
-              case id: Identifier =>
-                eat(RPAREN); New(id).setPos(pos)
+              case id: Identifier => {
+                val args : ListBuffer[ExprTree] = ListBuffer()
+
+                hasMoreArgs = currentToken.kind != RPAREN
+
+                while (hasMoreArgs) {
+                  args += expr
+                  if (currentToken.kind == COMMA) {
+                    readToken
+                  } else {
+                    hasMoreArgs = false
+                  }
+                }
+
+                eat(RPAREN); New(id, args.toList).setPos(pos)
+              }
+
               case _ => expected(IDKIND)
             }
           case _ => expected(LBRACKET, LPAREN)
@@ -287,10 +304,10 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         eat(RBRACKET)
         lhs = new ArrayRead(lhs, index)
       }
-      
+
       parseMethodCall(lhs)
     }
-    
+
     def parseMethodCall(lhs : ExprTree) : ExprTree = {
       var meth: ExprTree = null
       var hasMoreArgs: Boolean = true
@@ -386,6 +403,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       var parent: Option[Identifier] = None
       var attributes: ListBuffer[VarDecl] = ListBuffer()
       var methods: ListBuffer[MethodDecl] = ListBuffer()
+      var constructors : ListBuffer[MethodDecl] = ListBuffer()
 
       val methodName = currentToken match {
         case name: ID => Identifier(name.value).setPos(currentToken)
@@ -409,13 +427,48 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       while (currentToken.kind == VAR)
         attributes += parseVarDecl
 
-      while (currentToken.kind == DEF)
-        methods += parseMethod
+      while (currentToken.kind == DEF || currentToken.kind == THIS) {
+        if (currentToken.kind == DEF)
+          methods += parseMethod
+        else
+          constructors += parseConstructor(methodName)
+      }
 
       eat(RBRACE)
 
-      ClassDecl(methodName, parent, attributes.toList, methods.toList).
-        setPos(startPos)
+      //Compatibility for "legacy" TOOL programs which do not have a constructor
+      if (constructors.forall(_.args.length != 0))
+        constructors += MethodDecl(methodName, methodName, List(), List(), List(), null)
+
+      ClassDecl(methodName, parent, attributes.toList, methods.toList,
+        constructors.toList).setPos(startPos)
+    }
+
+    def parseConstructor(id : Identifier) : MethodDecl = {
+      val pos = currentToken
+
+      eat(THIS)
+      eat(LPAREN)
+
+      val args : List[Formal] = parseArgList
+      val vars  : ListBuffer[VarDecl] = ListBuffer()
+      val statements : ListBuffer[StatTree] = ListBuffer()
+
+      eat(RPAREN)
+      eat(EQSIGN)
+      eat(LBRACE)
+
+      while(currentToken.kind == VAR)
+        vars += parseVarDecl
+
+      while(currentToken.kind != RBRACE)
+        statements += statmt
+
+      eat(RBRACE)
+
+      //Constructors are considered as method returning the class type they belong to
+      //And named the same as the class they belong to. They also have no retExpr
+      MethodDecl(id, id, args, vars.toList, statements.toList, null).setPos(pos)
     }
 
     def parseObject: MainObject = {
@@ -456,7 +509,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
         case _ => expected(IDKIND)
       }
 
-      var args: ListBuffer[Formal] = ListBuffer()
+
       var variables: ListBuffer[VarDecl] = ListBuffer()
       var statements: ListBuffer[StatTree] = ListBuffer()
 
@@ -464,28 +517,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
 
       eat(LPAREN)
 
-      var hasMoreArgs: Boolean = currentToken.kind != RPAREN
-
-      while (hasMoreArgs) {
-        val pos = currentToken = currentToken
-        val id = currentToken match {
-          case a: ID => new Identifier(a.value).setPos(currentToken)
-          case _ => expected(IDKIND)
-        }
-        readToken
-
-        eat(COLON)
-
-        val tpe = parseType
-
-        args += Formal(tpe, new Identifier(id.value)).setPos(startPos)
-
-        if (currentToken.kind == COMMA) {
-          eat(COMMA)
-        } else {
-          hasMoreArgs = false
-        }
-      }
+      val args = parseArgList
 
       eat(RPAREN)
 
@@ -513,6 +545,33 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       MethodDecl(retType, methodID, args.toList, variables.toList,
         statements.toList, retExpr).setPos(startPos)
 
+    }
+
+    def parseArgList : List[Formal] = {
+      var args: ListBuffer[Formal] = ListBuffer()
+      var hasMoreArgs: Boolean = currentToken.kind != RPAREN
+
+      while (hasMoreArgs) {
+        val pos = currentToken
+        val id = currentToken match {
+          case a: ID => new Identifier(a.value).setPos(currentToken)
+          case _ => expected(IDKIND)
+        }
+        readToken
+
+        eat(COLON)
+
+        val tpe = parseType
+
+        args += Formal(tpe, new Identifier(id.value)).setPos(pos)
+
+        if (currentToken.kind == COMMA) {
+          eat(COMMA)
+        } else {
+          hasMoreArgs = false
+        }
+      }
+      args.toList
     }
 
     def parseVarDecl: VarDecl = {
@@ -615,7 +674,7 @@ object Parser extends Pipeline[Iterator[Token], Program] {
                 ident = ArrayRead(ident, arrayIndex)
                 arrayIndex = newArrayIndex
               }
-              
+
 
               eat(EQSIGN)
               val assignExpr = expr

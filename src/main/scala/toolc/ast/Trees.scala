@@ -10,7 +10,7 @@ object Trees {
 
   case class Program(main: MainObject, classes: List[ClassDecl]) extends Tree
   case class MainObject(id: Identifier, stats: List[StatTree]) extends Tree with Symbolic[ClassSymbol]
-  case class ClassDecl(id: Identifier, parent: Option[Identifier], vars: List[VarDecl], methods: List[MethodDecl]) extends Tree with Symbolic[ClassSymbol]
+  case class ClassDecl(id: Identifier, parent: Option[Identifier], vars: List[VarDecl], methods: List[MethodDecl], constructors : List[MethodDecl]) extends Tree with Symbolic[ClassSymbol]
   case class VarDecl(tpe: TypeTree, id: Identifier) extends Tree with Symbolic[VariableSymbol]
   case class MethodDecl(retType: TypeTree, id: Identifier, args: List[Formal], vars: List[VarDecl], stats: List[StatTree], retExpr: ExprTree) extends Tree with Symbolic[MethodSymbol]
   sealed case class Formal(tpe: TypeTree, id: Identifier) extends Tree with Symbolic[VariableSymbol]
@@ -28,7 +28,7 @@ object Trees {
   case class While(expr: ExprTree, stat: StatTree) extends StatTree
   case class Assign(id: Identifier, expr: ExprTree) extends StatTree
   case class ArrayAssign(id: ExprTree, index: ExprTree, expr: ExprTree) extends StatTree
-  
+
   //IO specific method calls
   case class Log(message : ExprTree) extends StatTree
   case class WriteLine(message : ExprTree) extends StatTree
@@ -64,6 +64,6 @@ object Trees {
     override def getType = getSymbol.getType
   }
   case class NewArray(size : ExprTree, tpe : TypeTree) extends ExprTree
-  case class New(tpe: Identifier) extends ExprTree
+  case class New(tpe: Identifier, args : List[ExprTree]) extends ExprTree with Symbolic[MethodSymbol]
   case class Not(expr: ExprTree) extends ExprTree
 }

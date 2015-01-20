@@ -9,9 +9,9 @@ import utils._
 
 object TypeChecking extends Pipeline[Program, Program] {
   /**
-   * Typechecking does not produce a value, but has the side effect of
-   * attaching types to trees and potentially outputting error messages.
-   */
+    * Typechecking does not produce a value, but has the side effect of
+    * attaching types to trees and potentially outputting error messages.
+    */
   def run(ctx: Context)(prog: Program): Program = {
     import ctx.reporter._
 
@@ -132,7 +132,14 @@ object TypeChecking extends Pipeline[Program, Program] {
         case True() | False() => TBool
         case id: Identifier => id.getType
         case ths: This => ths.getType
-        case New(tpe) => tpe.getType
+        case New(tpe, args) => {
+          (args zip expr.asInstanceOf[New].getSymbol.argList) foreach {
+            tuple =>{
+              tcExpr(tuple._1, tuple._2.getType)
+            }
+          }
+          tpe.getType
+        }
         case Not(expr) => tcExpr(expr, TBool)
         case NewArray(size, tpe) =>
           tcExpr(size, TInt); expr.getType
@@ -177,40 +184,44 @@ object TypeChecking extends Pipeline[Program, Program] {
 
     prog.classes.foreach {
       cl =>
-        cl.methods.foreach {
-          meth =>
-            meth.getSymbol.overridden match {
-              case None =>
-              case Some(over) => {
-                if (over.getType != meth.getSymbol.getType) error(meth.id.value + " must return a " + over.getType, meth)
-                over.argList.zip(meth.getSymbol.argList).foreach {
-                  x =>
-                    {
-                      if (x._1.getType != x._2.getType) error("Type mismatch in overriding method " + meth.id.value, meth)
-                    }
-                }
+      cl.methods.foreach {
+        meth =>
+        meth.getSymbol.overridden match {
+          case None =>
+          case Some(over) => {
+            if (over.getType != meth.getSymbol.getType) error(meth.id.value + " must return a " + over.getType, meth)
+            over.argList.zip(meth.getSymbol.argList).foreach {
+              x =>
+              {
+                if (x._1.getType != x._2.getType) error("Type mismatch in overriding method " + meth.id.value, meth)
               }
             }
+          }
         }
+      }
     }
 
     // Checking types of return stats
     prog.classes.foreach {
       cl =>
-        cl.methods foreach {
-          meth =>
-            if (!tcExpr(meth.retExpr, meth.getSymbol.getType).isSubTypeOf(meth.getSymbol.getType))
-              error("Type mismatch " + meth.id.value + " must return a " + meth.retType.getType, meth.retExpr)
-        }
+      cl.methods foreach {
+        meth =>
+        if (!tcExpr(meth.retExpr, meth.getSymbol.getType).isSubTypeOf(meth.getSymbol.getType))
+          error("Type mismatch " + meth.id.value + " must return a " + meth.retType.getType, meth.retExpr)
+      }
     }
 
     prog.main.stats.foreach(tcStat(_))
 
     prog.classes.foreach {
       x =>
-        x.methods.foreach {
-          y => y.stats.foreach(tcStat(_))
-        }
+      x.constructors.foreach {
+        cstr => cstr.stats.foreach(tcStat(_))
+      }
+
+      x.methods.foreach {
+        y => y.stats.foreach(tcStat(_))
+      }
     }
 
     prog

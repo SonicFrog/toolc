@@ -44,6 +44,7 @@ object Symbols {
 
   class ClassSymbol(val name: String) extends Symbol {
     var parent: Option[ClassSymbol] = None
+    var constructors = Map[Int, MethodSymbol]()
     var methods = Map[String,MethodSymbol]()
     var members = Map[String,VariableSymbol]()
 

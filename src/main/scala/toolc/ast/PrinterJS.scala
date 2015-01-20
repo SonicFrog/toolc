@@ -16,15 +16,14 @@ object PrinterJS {
       case dcl : ClassDecl =>
         val clName = this(dcl.id, None)
         dcl.parent.flatMap(parent => Some(clName + ".prototype = Object.create(" + this(parent, None) + ".prototype);\n")).getOrElse("") +
-        "function " + clName + "() {" +
-        dcl.vars.map(vari => this(vari.id, Some(Set())) + " = null;\n").mkString + "}\n" +
+        dcl.constructors.map(cstr => this(cstr, None)).mkString +
         dcl.methods.map(meth => clName + ".prototype." + this(meth, None)).mkString
 
       case dcl : MethodDecl => {
         val methScope = Some((dcl.vars.map (v => v.id.value) toSet) ++: (dcl.args.map (v => v.id.value) toSet))
         this(dcl.id, None) + " = function(" + dcl.args.map(this(_, None)).mkString(", ") +") { \n" +
         List(dcl.vars.map(this(_, None)).toList,dcl.stats.map(this(_, methScope)).toList,
-        List("return " + this(dcl.retExpr, methScope) + ";")).flatten.mkString("\n") + "\n}\n"
+        List("return " + (if (dcl.retExpr != null) this(dcl.retExpr, methScope) else "") + ";")).flatten.mkString("\n") + "\n}\n"
       }
 
       case dcl : VarDecl => "var " + this(dcl.id, methodScope) + ";"
@@ -73,7 +72,7 @@ object PrinterJS {
       }
       case ths : This => "this"
       case NewArray(size, tpe) => "new Array("+ this(size, methodScope) +")"
-      case New(tpe) => "new " + this(tpe, None) + "()"
+      case New(tpe, args) => "new " + this(tpe, None) + "(" + args.map(a => this(a, methodScope)).mkString(",") + ")"
       case Not(expr) => "!" + this(expr, methodScope)
 
       case ReadString(msg) => "prompt(" + this(msg, methodScope) + ")"

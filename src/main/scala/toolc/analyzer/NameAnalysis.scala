@@ -99,6 +99,26 @@ object NameAnalysis extends Pipeline[Program, Program] {
       (params, meth.args map (u => u.getSymbol))
     }
 
+    def collectConstructors(cls : ClassDecl, cs : ClassSymbol) : Map[Int, MethodSymbol] = {
+      def inner(map : Map[Int, MethodSymbol], left : List[MethodDecl]) : Map[Int, MethodSymbol] = {
+        left match {
+          case Nil => map
+          case x :: xs => map.get(x.args.length) match {
+            case None =>
+              val ns = new MethodSymbol(x.id.value, cs)
+              ns.setType(fetchType(x.id))
+              ns.setPos(x)
+              x.setSymbol(ns)
+              inner(map.updated(x.args.length, ns), xs)
+            case Some(ms) =>
+              fatal(cls.id.value + " has two constructors with the same number of arguments!", x)
+          }
+        }
+      }
+
+      inner(Map(), cls.constructors)
+    }
+
     def collectMethods(cls: ClassDecl, cs: ClassSymbol): Map[String, MethodSymbol] = {
       def inner(map: Map[String, MethodSymbol], left: List[MethodDecl]): Map[String, MethodSymbol] = left match {
         case Nil => map
@@ -180,10 +200,14 @@ object NameAnalysis extends Pipeline[Program, Program] {
 
     val methodList = prog.classes flatMap (cldcl => {
       val map = collectMethods(cldcl, cldcl.getSymbol)
+      val cstr = collectConstructors(cldcl, cldcl.getSymbol)
+
       cldcl.getSymbol.methods = map
+      cldcl.getSymbol.constructors = cstr
 
       map values
     })
+
     val classVar = prog.classes flatMap (cldcl => {
       val map = collectVariables(cldcl)
       cldcl.getSymbol.members = map
@@ -194,7 +218,7 @@ object NameAnalysis extends Pipeline[Program, Program] {
     classes.values foreach { cldcl => cldcl.setType(new Types.TObject(cldcl)) }
 
     val methodVar = (for (classe <- prog.classes) yield {
-      classe.methods flatMap { mdcl =>
+      {classe.methods flatMap { mdcl : MethodDecl =>
         {
           val mapMeth = collectMethodVariables(mdcl, mdcl.getSymbol)
           val paramsTuple = collectMethodParam(mdcl, mdcl.getSymbol)
@@ -203,7 +227,16 @@ object NameAnalysis extends Pipeline[Program, Program] {
           mdcl.getSymbol.members = mapMeth
           (mapMeth ++: paramsTuple._1).values
         }
-      }
+      }} ++ {classe.constructors flatMap { mdcl : MethodDecl =>
+        {
+          val vars = collectMethodVariables(mdcl, mdcl.getSymbol)
+          val paramsTuple = collectMethodParam(mdcl, mdcl.getSymbol)
+          mdcl.getSymbol.params = paramsTuple._1
+          mdcl.getSymbol.argList = paramsTuple._2
+          mdcl.getSymbol.members = vars
+          (vars ++: paramsTuple._1).values
+        }
+      }}
     }) flatten
 
     methodList foreach {
@@ -220,6 +253,12 @@ object NameAnalysis extends Pipeline[Program, Program] {
       _.methods foreach (
         meth => meth.stats foreach (handleStatTree(_, meth.getSymbol))))
 
+    prog.classes foreach {
+      _.constructors foreach {
+        cstr => cstr.stats foreach (handleStatTree(_, cstr.getSymbol))
+      }
+    }
+
     prog.classes foreach (cldcl => {
       cldcl.parent match {
         case None =>
@@ -230,6 +269,12 @@ object NameAnalysis extends Pipeline[Program, Program] {
           attachSymbolToType(superType)
       }
       cldcl.vars foreach (vrdcl => attachSymbolToType(vrdcl.tpe))
+
+      cldcl.constructors foreach { cstr =>
+        cstr.vars foreach(vrdcl => attachSymbolToType(vrdcl.tpe))
+        cstr.args foreach (arg => attachSymbolToType(arg.tpe))
+      }
+
       cldcl.methods foreach { meth =>
         meth.vars foreach (vrdcl => attachSymbolToType(vrdcl.tpe))
         attachSymbolToType(meth.retType)
@@ -327,7 +372,11 @@ object NameAnalysis extends Pipeline[Program, Program] {
           et.setType(checkArrayType(tpe))
         }
 
-        case New(tpe) => tpe.setSymbol(globalScope.lookupClass(tpe.value).getOrElse(fatal(tpe.value + " not declared", tpe)))
+        case New(tpe, args) => {
+          tpe.setSymbol(globalScope.lookupClass(tpe.value).getOrElse(fatal(tpe.value + " not declared", tpe)))
+          val cls = globalScope.lookupClass(tpe.value).get
+          et.asInstanceOf[New].setSymbol(cls.constructors.get(args.length).getOrElse(fatal(tpe.value + " does not have a constructor with " + args.length + " parameters")))
+        }
         case Not(expr) => handleExprTree(expr, sym)
         case _ => //TODO
       }
