@@ -1,39 +1,162 @@
-Give code examples where your extension is useful, and describe how they work
-with it. Make sure you include examples where the most intricate features of
-your extension are used, so that we have an immediate understanding of what the
-challenges are.
+\subsection{IO Functions}
+Tool's greatest limitation is its lack of interaction with the
+user. JavaScript, on the  contrary, has some already implemented
+functions for all those purposes. All these IO functions are managed
+through the use of new built-in IO object in order to reduce the
+number of keywords required. The println statement from the original
+TOOL has been retained for compatibility reasons.
 
-You can pretty-print tool code like this:
+\subsubsection{Input management}
+
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    Name & Role \\
+    \midrule
+    readDouble & Allows the user to enter a Double \\
+    readString & Allows the user to enter String \\
+    readInteger & Allows the user to enter an Integer \\
+  \end{tabular}
+  \caption{IO methods}
+  \label{tab:infuncs}
+\end{table}
+
+All these methods are meant to be used as expressions and can be
+combined as any expressions as shown below.
+
 \begin{lstlisting}
-object {
-  def main() : Unit = { println(new A().foo(-41)); }
-}
+  var b : Int;
+  var c : Double;
 
-class A {
-  def foo(i : Int) : Int = {
-    var j : Int;
-    if(i < 0) { j = 0 - i; } else { j = i; }
-    return j + 1;
-  }
-}
+  b = IO.readInteger();
+  c = b + IO.readDouble();
 \end{lstlisting}
 
-This section should convince us that you understand how your extension can be
-useful and that you thought about the corner cases.
+\subsubsection{Output management}
 
-\subsection{IO Functions}
-Tool's greatest limitation is its lack of interaction with the user. JavaScript, on the  contrary, has some already implemented functions for all those purposes.
-\subsubsection{Input gestion}
-\subsubsection{Output gestion}
+Running inside of a browser allows for two kinds of output. We can
+either show a popup or write on the webpage. Both these methods are
+supported as shown in~\autoref{tab:outfuncs}. For debugging purposes,
+it is also possible to log message to the Javascript console.
+
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    Name & Role \\
+    \midrule
+    log & Logs a message in the browser's console \\
+    writeLine & Writes a line on the webpage \\
+    showPopup & Creates a popup in the browser \\
+  \end{tabular}
+  \caption{Output methods}
+  \label{tab:outfuncs}
+\end{table}
+
+\begin{lstlisting}
+  println(``Hello''); //Compatibility
+  IO.showPopup(10 + ``Some string'');
+  IO.writeLine(``<strong>Some HTML!</strong>'');
+\end{lstlisting}
 
 \subsection{New Types}
-Another great limitation of Tool is that it only support very basic types. Which is why the support for Double and any type of Array has been added to the grammar of Tool.
+
+Another great limitation of Tool is that it only supports very basic
+types. Our extension adds support for generic arrays and floating
+point numbers to TOOL.
+
+\begin{lstlisting}
+  var c : Double;
+  c = 11.2;
+  IO.showPopup(``Here's a Double: '' + c);
+\end{lstlisting}
+
+
 \subsubsection{Double}
-Integer are now defined as a subtype of double for simplification purposes.
-You can concatenate a Double with a String.
+
+In order to facilitate manipulations of basic types Integer are
+considered to be a subtype of Double. Indeed you can view an Integer
+as a Double with a zero decimal part. It is thus possible to add an
+Integer with a Double and the result will be a Double.
+
+\begin{lstlisting}
+  var c : Integer;
+  var d : Double;
+
+  c = 10;
+  d = 11.2;
+
+  println(``This is ''c + d); // This is 21.2
+\end{lstlisting}
+
 \subsubsection{Array of any Types}
+
+Generic arrays are also part of the extension. It is now possible to
+instantiate arrays of any types, including Object types.
+
+\begin{lstlisting}
+  class Hello {
+    def method() : Int = {
+      return 10;
+    }
+  }
+
+  def someMethod() : Integer = {
+    var array : Hello[];
+    array = new Hello[5];
+    array[2] = new Hello();
+    return array[2].method();
+  }
+\end{lstlisting}
+
 \subsubsection{Array of more than one dimension}
-If you want to see a real world use of a two dimension matrix, you can check the file \emph{programs/Sudokupdated.tool} which is an updated version of the given \emph{Sudoku.tool} implementing the support
+If you want to see a real world use of a two dimension matrix, you can
+check the file \emph{programs/Sudokupdated.tool} which is an updated
+version of the given \emph{Sudoku.tool} making use of the
+multi-dimensional arrays.
+
+\begin{lstlisting}
+  var d : Double[][]; //Matrix of Double
+  var i : Integer;
+
+  d = new Double[3];
+  i = 0;
+  while(i < 3) {
+    d[i] = new Double[3];
+  }
+  println(d[0][2]); //d is a 3x3 matrix of Doubles
+\end{lstlisting}
+
 \subsection{Parametrized constructor}
 
+The support for constructors has also been added to the TOOL
+language. However currently only one constructor per class is
+allowed. The constructor must be declared directly after the fields of
+the class and before any method declaration. In order to retain
+compatibility with older TOOL programs a class declaring no
+constructor is assumed to have a default constructor which takes no
+arguments.
 
+The following code shows how to declare a constructor:
+\begin{lstlisting}
+  class A {
+    var field1 : Int;
+    var field2 : Double;
+
+    this(param1 : Int, param2 : Double) = {
+      field1 = param1;
+      field2 = param2;
+    }
+  }
+
+  var a : A;
+  a = new A(10, 11.2);
+
+  class B {
+    //B automatically has a default constructor
+  }
+
+  var b : B;
+  b = new B(); //Using the default constructor
+\end{lstlisting}
