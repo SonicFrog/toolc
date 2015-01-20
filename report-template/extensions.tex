@@ -1,5 +1,7 @@
-If you did not finish what you had planned, explain here what's missing.
+Generating ``web pages" from Tool is quite awesome but for now our web pages imitate the
+console environnement in the webpage, which is a bit nasty in 2014.
 
-In any case, describe how you could further extend your compiler in the
-direction you chose. This section should convince us that you understand the
-challenges of writing a good compiler for high-level programming languages.
+A possible extension would be to generate more complex and web 2.0
+web pages. Such goal could be implemented by adding the support for imports in Tool and creating framework to generate specific part of web pages through Tool. But aside of the import support and possible addition of new IO methods, this is not much of a compiler question rather than just writing a Tool library to generate HTML and/or CSS.
+
+Another extension would be to add any other cool feature to our modified Tool syntax (e.g: Scala-like pattern matching) and do the changes needed to all our compiler components (lexer, parser, name analyser and type checker) and to our Tool-to-JS translator, the printerJS.
