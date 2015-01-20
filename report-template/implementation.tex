@@ -71,23 +71,19 @@ InitSlot.prototype.isInit = function() {
 
 \subsubsection{Imitating the environnement of a shell}
 \subsubsection{Input gestion}
+
+
 \subsubsection{Double in Tool and Integer in JavaScript}
-Integer are now defined as a subtype of double for simplification purposes.
-You can concatenate a Double with a String.
+Integer are now defined as a subtype of double so it is possible to do the arithmetic operations on an integer and a double without any trouble thanks to the weak typing of JavaScript.
+
+But this introduce a new problem, as there is only a number type (IEEE 754 64-bits standard) there is no integer in absolute. This is problematic, for example when you want to do an integer by integer division
+in JavaScript the result will not  
+
 \subsubsection{Array of any Types (including arrays of arrays)}
+
 \subsubsection{Parametrized constructor}
+
 \subsubsection{Legacy support}
-
-
-
-Describe all non-obvious tricks you used. Tell us what you thought was hard and
-why. If it took you time to figure out the solution to a problem, it probably
-means it wasn't easy and you should definitely describe the solution in details
-here. If you used what you think is a cool algorithm for some problem, tell us.
-Do not however spend time describing trivial things (we what a tree traversal
-is, for instance). 
-
-After reading this section, we should be convinced that you knew what you were
-doing when you wrote your extension, and that you put some extra consideration
-for the harder parts.
+As the number of developper using our modified syntax of Tool is really small, we were obligated to have legacy support for the original Tool syntax in order to have more that five programs to test!
+That's why we kept the lexing of println() but we read it as a token WriteLine to avoid code duplication.
 
