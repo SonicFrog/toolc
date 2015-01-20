@@ -426,7 +426,10 @@ object Parser extends Pipeline[Iterator[Token], Program] {
       while (currentToken.kind == VAR)
         attributes += parseVarDecl
 
-      val constructor = parseConstructor(methodName)
+      val constructor = {
+        if (currentToken.kind == THIS) parseConstructor(methodName)
+        else MethodDecl(methodName, methodName, List(), List(), List(), null)
+      }
 
       while (currentToken.kind == DEF)
         methods += parseMethod
